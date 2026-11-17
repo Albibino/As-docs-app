@@ -1,0 +1,25 @@
+# Configuração NÃO sensível do backend. Para trocar banco, IA ou URLs:
+#   kubectl -n as-docs edit configmap as-docs-backend-config
+#   kubectl -n as-docs rollout restart deployment as-docs-backend
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: as-docs-backend-config
+  namespace: as-docs
+data:
+  APP_URL: "https://docs.exemplo.com"          # domínio público do ALB
+  PORT: "3000"
+  JWT_TOKEN_EXPIRES_IN: "30d"
+  REDIS_URL: "redis://redis.as-docs.svc.cluster.local:6379/1"
+  STORAGE_DRIVER: "local"                      # "s3" para várias réplicas
+  AWS_S3_REGION: "us-east-1"
+  AWS_S3_BUCKET: ""
+  MAIL_DRIVER: "log"
+  DISABLE_TELEMETRY: "true"
+  DEBUG_MODE: "false"
+  LOG_HTTP: "false"
+  TCC_SKIP_SEED: "false"
+  DOCS_AI_URL: "http://as-docs-ai.as-docs.svc.cluster.local:8000"
+  DOCS_AI_MCP_ENABLED: "true"
+  DOCS_AI_MCP_CREDENTIAL_TTL_SECONDS: "120"
+  DOCS_AI_INDEX_INTERVAL_SECONDS: "30"

@@ -1,0 +1,709 @@
+.labelsWrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 24px;
+  height: auto;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.2;
+  user-select: none;
+  white-space: normal;
+}
+
+.chipName {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  letter-spacing: 0.005em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dotChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 24px;
+  height: auto;
+  color: var(--mantine-color-text);
+  font-size: 13px;
+  line-height: 1.25;
+  user-select: none;
+}
+
+.dotChipMarker {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.chipX {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: currentColor;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  margin-right: 0;
+  margin-left: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  padding: 0;
+  opacity: 0.6;
+}
+
+.chipX:hover {
+  opacity: 1;
+  background: light-dark(rgba(0, 0, 0, 0.08), rgba(255, 255, 255, 0.12));
+}
+
+.addBtn {
+  appearance: none;
+  border: 1px dashed
+    light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3));
+  background: transparent;
+  color: var(--mantine-color-dimmed);
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition:
+    background 100ms ease,
+    border-color 100ms ease,
+    color 100ms ease;
+}
+
+.addBtn:hover {
+  background: light-dark(rgba(0, 0, 0, 0.03), rgba(255, 255, 255, 0.04));
+  color: var(--mantine-color-text);
+  border-color: light-dark(
+    var(--mantine-color-gray-5),
+    var(--mantine-color-dark-2)
+  );
+}
+
+.addBtnOpen {
+  background: var(--mantine-color-body);
+  border-style: solid;
+  border-color: light-dark(
+    var(--mantine-color-gray-5),
+    var(--mantine-color-dark-2)
+  );
+  color: var(--mantine-color-text);
+}
+
+.popover {
+  box-sizing: border-box;
+  width: var(--label-picker-width, 240px);
+  min-width: min(240px, calc(100vw - 16px));
+  max-width: min(300px, calc(100vw - 16px));
+  padding: 0;
+  overflow: hidden;
+}
+
+.popoverDropdown {
+  box-sizing: border-box;
+  width: fit-content;
+  min-width: min(240px, calc(100vw - 16px));
+  max-width: min(300px, calc(100vw - 16px));
+  padding: 0;
+  overflow: hidden;
+}
+
+.popoverMeasure {
+  position: absolute;
+  display: inline-block;
+  visibility: hidden;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.popoverSearch {
+  padding: 8px 8px 4px;
+  border-bottom: 1px solid
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+}
+
+.popoverSearch input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  padding: 4px 4px;
+  color: var(--mantine-color-text);
+  outline: none;
+}
+
+.popoverSearch input::placeholder {
+  color: var(--mantine-color-placeholder);
+}
+
+.popoverList {
+  max-height: 240px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px;
+}
+
+.popoverEmpty {
+  padding: 12px 8px;
+  color: var(--mantine-color-dimmed);
+  font-size: 12.5px;
+  text-align: center;
+}
+
+.popoverItem {
+  appearance: none;
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--mantine-color-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.popoverItemHover {
+  background: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-5)
+  );
+}
+
+.popoverItemDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.popoverItemName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popoverCreatePlus {
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mantine-color-dimmed);
+}
+
+.labelBreadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-sm);
+  scrollbar-width: thin;
+}
+
+.labelBreadcrumbSegment {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.labelBreadcrumbSeparator {
+  color: var(--mantine-color-dimmed);
+}
+
+.labelBreadcrumbTree,
+.labelBreadcrumbLink,
+.labelBreadcrumbCurrent {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.labelBreadcrumbTree {
+  color: var(--mantine-color-dimmed);
+}
+
+.labelBreadcrumbLink {
+  color: var(--mantine-color-dimmed);
+  text-decoration: none;
+}
+
+.labelBreadcrumbLink:hover {
+  color: var(--mantine-color-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.labelBreadcrumbCurrent {
+  color: var(--mantine-color-bright);
+  font-weight: 500;
+}
+
+.headerChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.005em;
+  text-decoration: none;
+  user-select: none;
+  transition: filter 100ms ease;
+}
+
+.headerChip:hover {
+  filter: brightness(0.97);
+}
+
+.headerDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 12px;
+  margin: 0 -12px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color 80ms ease;
+}
+
+.row + .row {
+  border-top: 1px solid
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+}
+
+.row:hover {
+  background-color: light-dark(
+    var(--mantine-color-gray-0),
+    var(--mantine-color-dark-6)
+  );
+}
+
+.row:hover + .row,
+.row:has(+ .row:hover) {
+  border-top-color: transparent;
+}
+
+.rowMain {
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.rowIcon {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--mantine-color-dimmed);
+  margin-top: 2px;
+}
+
+.rowBody {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rowTitle {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--mantine-color-text);
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.rowChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chipMore {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 4px;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--mantine-color-dimmed);
+  background: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-5)
+  );
+  user-select: none;
+  white-space: nowrap;
+}
+
+.rowMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  color: var(--mantine-color-dimmed);
+  font-size: 13px;
+}
+
+.rowDate {
+  color: var(--mantine-color-dimmed);
+  font-size: 13px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.metaDot {
+  font-size: 14px;
+  line-height: 1;
+  color: var(--mantine-color-dimmed);
+}
+
+.chipLink {
+  text-decoration: none;
+  color: inherit;
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  flex: 1 1 auto;
+}
+
+.chipLink:hover {
+  filter: brightness(0.97);
+}
+
+.nodeRow {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.nodeDragging {
+  opacity: 0.45;
+}
+
+.nodeDropTarget {
+  position: relative;
+  min-width: 0;
+  max-width: 100%;
+  padding: 8px 6px;
+  border-radius: 4px;
+  transition: background-color 120ms ease;
+}
+
+.nodeDropTarget:hover,
+.nodeDropTarget:focus-within {
+  background-color: light-dark(
+    var(--mantine-color-gray-0),
+    var(--mantine-color-dark-6)
+  );
+}
+
+.nodeRow + .nodeRow > .nodeDropTarget {
+  border-top: 1px solid
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+}
+
+.nodeDropTarget::before,
+.nodeDropTarget::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  left: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--mantine-primary-color-filled);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.nodeDropTarget::before {
+  top: -4px;
+}
+
+.nodeDropTarget::after {
+  bottom: -4px;
+}
+
+.nodeDropAbove::before,
+.nodeDropBelow::after {
+  opacity: 1;
+}
+
+.nodeDropInvalid {
+  background: light-dark(rgba(250, 82, 82, 0.08), rgba(250, 82, 82, 0.14));
+}
+
+.nodeDragHandle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: var(--mantine-color-dimmed);
+  cursor: grab;
+  border-radius: 4px;
+}
+
+.nodeDragHandle:hover {
+  background: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-5)
+  );
+}
+
+.nodeDragHandle:active {
+  cursor: grabbing;
+}
+
+.nodeListNested {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+}
+
+.nodeRowContent {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.taxonomyActions {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.treeCard {
+  min-width: 0;
+  max-width: 100%;
+  padding: 16px;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: 10px;
+}
+
+.treeHeader {
+  min-width: 0;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.treeHeaderMain {
+  min-width: 0;
+  flex: 1 1 260px;
+}
+
+.treeHeaderActions {
+  min-width: 0;
+  flex: 0 1 auto;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.nodeIdentity {
+  min-width: 0;
+  flex: 0 1 34%;
+}
+
+.nodeIdentity .dotChip {
+  min-width: 0;
+}
+
+.nodeDescription {
+  min-width: 0;
+  flex: 1 1 240px;
+  color: var(--mantine-color-dimmed);
+  overflow-wrap: anywhere;
+}
+
+.nodeActions {
+  min-width: 0;
+  flex: 0 0 auto;
+  margin-left: auto;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.nodeRow[data-kind="group"] .chipName {
+  font-weight: 600;
+}
+
+.nodeRow[data-kind="label"] .chipName {
+  font-weight: 400;
+}
+
+.secondarySection {
+  padding-top: 16px;
+  border-top: 1px solid
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+}
+
+@media (max-width: 48em) {
+  .treeCard {
+    padding: 12px;
+  }
+
+  .treeHeaderActions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .nodeIdentity,
+  .nodeDescription,
+  .nodeActions {
+    flex-basis: 100%;
+  }
+
+  .nodeActions {
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+}
+
+/* ---- picker sections ---- */
+
+.popoverSection + .popoverSection {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5));
+}
+
+.popoverSectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--mantine-color-dimmed);
+}
+
+/* Signals that picking here replaces whatever is already selected. */
+.popoverSectionHint {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  opacity: 0.75;
+}
+
+.popoverItemCheck {
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--mantine-color-dimmed);
+}
+
+/* ---- byline ---- */
+
+.bylineLabels {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* An unanswered required group, carried over from the page's template. */
+.pendingChip {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 4px;
+  border: 1px dashed var(--mantine-color-orange-5);
+  background: transparent;
+  color: light-dark(
+    var(--mantine-color-orange-8),
+    var(--mantine-color-orange-4)
+  );
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pendingChip:hover {
+  background: light-dark(
+    var(--mantine-color-orange-0),
+    rgba(255, 255, 255, 0.04)
+  );
+}
+
+.moreChip {
+  appearance: none;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}

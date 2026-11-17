@@ -1,0 +1,53 @@
+.filtersContainer {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 0;
+  scrollbar-width: thin;
+}
+
+.filterButton {
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-size: 13px;
+  height: 32px;
+  padding: 0 12px;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-gray-6));
+  &:hover {
+    color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-gray-6));
+  }
+}
+
+.labelFilterDropdown {
+  width: max-content;
+  min-width: min(240px, calc(100vw - 32px));
+  max-width: min(640px, calc(100vw - 32px));
+}
+
+.labelFilterSearch {
+  width: 100%;
+  min-width: 0;
+}
+
+.labelFilterEmpty {
+  padding: 8px 12px;
+}
+
+.labelFilterRow {
+  width: 100%;
+  min-width: 0;
+}
+
+.labelFilterText,
+.labelFilterSectionTitle {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.labelFilterText {
+  flex: 1;
+}

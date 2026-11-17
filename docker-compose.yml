@@ -1,0 +1,109 @@
+# Stack local que reproduz a separação da AWS:
+#   frontend (Nginx, "rede pública")  ->  backend + ai + db + redis ("rede privada")
+#
+#   cp .env.example .env      # ajuste APP_SECRET e DOCS_AI_HMAC_SECRET
+#   docker compose up --build
+#   abra http://localhost:8080
+#
+# O serviço `ai` é construído do repositório irmão ../As-docs-ai (AS_DOCS_AI_PATH).
+# Só o frontend publica porta no host; os demais ficam na rede `private`.
+name: as-docs
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    image: as-docs-frontend:local
+    environment:
+      BACKEND_URL: http://backend:3000
+      PUBLIC_APP_URL: '${APP_URL:-http://localhost:8080}'
+    ports:
+      - '8080:8080'
+    depends_on:
+      - backend
+    networks: [public, private]
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: as-docs-backend:local
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      APP_URL: '${APP_URL:-http://localhost:8080}'
+      PORT: 3000
+      APP_SECRET: '${APP_SECRET:?defina APP_SECRET no .env}'
+      DATABASE_URL: 'postgresql://asdocs:${DB_PASSWORD:-as-local-db}@db:5432/asdocs'
+      REDIS_URL: 'redis://redis:6379/1'
+      MAIL_DRIVER: log
+      DISABLE_TELEMETRY: 'true'
+      DOCS_AI_URL: 'http://ai:8000'
+      DOCS_AI_HMAC_SECRET: '${DOCS_AI_HMAC_SECRET:?defina DOCS_AI_HMAC_SECRET no .env}'
+      DOCS_AI_MCP_ENABLED: 'true'
+      DOCS_AI_INDEX_INTERVAL_SECONDS: '${DOCS_AI_INDEX_INTERVAL_SECONDS:-30}'
+    volumes:
+      - app_storage:/app/data/storage
+    networks: [private]
+    restart: unless-stopped
+
+  ai:
+    build: ${AS_DOCS_AI_PATH:-../As-docs-ai}
+    image: as-docs-ai:local
+    depends_on:
+      - redis
+    environment:
+      PORT: 8000
+      REDIS_URL: 'redis://redis:6379/0'
+      DOCS_AI_HMAC_SECRET: '${DOCS_AI_HMAC_SECRET}'
+      AI_EMBEDDING_PROVIDER: '${AI_EMBEDDING_PROVIDER:-hashing}'
+      AI_CHAT_PROVIDER: '${AI_CHAT_PROVIDER:-extractive}'
+      OPENAI_API_KEY: '${OPENAI_API_KEY:-}'
+      OPENAI_MODEL: '${OPENAI_MODEL:-gpt-6-luna}'
+      AI_MCP_CLIENT_ENABLED: 'true'
+      AI_MCP_SERVER_URL: 'http://backend:3000/mcp'
+    networks: [private]
+    restart: unless-stopped
+
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: asdocs
+      POSTGRES_USER: asdocs
+      POSTGRES_PASSWORD: '${DB_PASSWORD:-as-local-db}'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U asdocs -d asdocs']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - db_data:/var/lib/postgresql
+    networks: [private]
+    restart: unless-stopped
+
+  redis:
+    # Redis 8 é obrigatório: Vector Sets (VADD/VSIM) são o banco vetorial da IA.
+    # DB 0 = IA; DB 1 = backend (filas e cache).
+    image: redis:8
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    volumes:
+      - redis_data:/data
+    networks: [private]
+    restart: unless-stopped
+
+networks:
+  public: {}
+  # Na AWS a subnet privada sai para a internet só pelo NAT Gateway (a IA
+  # precisa alcançar a API da OpenAI). Aqui a rede não é `internal` pelo mesmo motivo;
+  # o isolamento está em nenhum serviço privado publicar porta no host.
+  private: {}
+
+volumes:
+  app_storage:
+  db_data:
+  redis_data:

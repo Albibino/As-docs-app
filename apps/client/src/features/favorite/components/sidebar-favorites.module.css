@@ -1,0 +1,49 @@
+.section {
+  padding-bottom: var(--mantine-spacing-xs);
+}
+
+.header,
+.item {
+  width: 100%;
+  border-radius: var(--mantine-radius-sm);
+}
+
+.header {
+  padding: rem(4px) var(--mantine-spacing-xs);
+}
+
+.headerLabel {
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dimmed);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  min-height: rem(30px);
+  padding: 0 var(--mantine-spacing-xs);
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 500;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+
+  &:hover {
+    background: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+    color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
+  }
+}
+
+/* Group wrapper inside the item: allows the title to truncate instead of
+   overflowing the sidebar. */
+.itemInner {
+  flex: 1;
+  min-width: 0;
+
+  /* Keep the page icon at full size so only the title truncates. */
+  > :first-child {
+    flex-shrink: 0;
+  }
+}

@@ -1,0 +1,74 @@
+# Redis 8 compartilhado (DB 0 = As-docs-ai, DB 1 = backend).
+# Redis 8 é obrigatório: os Vector Sets (VADD/VSIM) são o banco vetorial da IA,
+# recurso que o ElastiCache não oferece. Por isso roda como StatefulSet com EBS.
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: as-docs
+spec:
+  type: ClusterIP
+  selector: { app: redis }
+  ports:
+    - port: 6379
+      targetPort: 6379
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: as-docs
+spec:
+  serviceName: redis
+  replicas: 1
+  selector:
+    matchLabels: { app: redis }
+  template:
+    metadata:
+      labels: { app: redis }
+    spec:
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      containers:
+        - name: redis
+          image: redis:8
+          args: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+          ports:
+            - containerPort: 6379
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { memory: 1Gi }
+          readinessProbe:
+            exec: { command: ["redis-cli", "ping"] }
+            periodSeconds: 10
+          volumeMounts:
+            - name: data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: gp3      # ajuste para a StorageClass do cluster
+        resources:
+          requests:
+            storage: 5Gi
+---
+# Só backend e IA falam com o Redis.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis-ingress
+  namespace: as-docs
+spec:
+  podSelector:
+    matchLabels: { app: redis }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: { matchLabels: { app: as-docs-backend } }
+        - podSelector: { matchLabels: { app: as-docs-ai } }
+      ports:
+        - port: 6379

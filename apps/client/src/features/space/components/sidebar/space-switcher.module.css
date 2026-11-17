@@ -1,0 +1,15 @@
+.name {
+  min-width: 0;
+}
+
+.collapsedButton {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+
+  &:focus-visible {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: 2px;
+    border-radius: var(--mantine-radius-sm);
+  }
+}

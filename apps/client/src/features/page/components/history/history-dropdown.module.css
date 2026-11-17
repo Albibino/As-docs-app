@@ -1,0 +1,15 @@
+/*
+ * Mantine gives the autosize ScrollArea content `min-width: min-content`
+ * (`.m_d57069b5:where([data-autosize]) .m_b1336c6`), so long page titles widen
+ * the dropdown and overflow horizontally instead of being truncated.
+ * `!important` is needed to beat that vendor selector's specificity.
+ */
+.viewport {
+  max-width: 100%;
+}
+
+.viewport .content {
+  min-width: 0 !important;
+  width: 100%;
+  max-width: 100%;
+}

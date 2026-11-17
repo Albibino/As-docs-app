@@ -1,0 +1,209 @@
+/* Tela de escolha de usuário. Segue o esquema de cores do Mantine
+   (claro por padrão, escuro via data-mantine-color-scheme="dark"). */
+.authShell {
+    --auth-bg: #f4f6f9;
+    --auth-grid: rgba(15, 23, 42, 0.045);
+    --auth-glow-a: rgba(96, 130, 175, 0.1);
+    --auth-glow-b: rgba(120, 140, 170, 0.1);
+    --auth-mark: rgba(15, 23, 42, 0.2);
+    --auth-card: rgba(255, 255, 255, 0.96);
+    --auth-border: #dde2e9;
+    --auth-shadow: 0 24px 70px rgba(15, 23, 42, 0.1);
+    --auth-heading: #111827;
+    --auth-text: #1f2937;
+    --auth-tagline: #5b6575;
+    --auth-muted: #667085;
+    --auth-eyebrow: #7a8494;
+    --auth-btn-bg: #1b2028;
+    --auth-btn-border: #1b2028;
+    --auth-btn-text: #f5f7fa;
+
+    @mixin dark {
+        --auth-bg: #0e1218;
+        --auth-grid: rgba(255, 255, 255, 0.027);
+        --auth-glow-a: rgba(61, 87, 119, 0.1);
+        --auth-glow-b: rgba(47, 60, 79, 0.12);
+        --auth-mark: rgba(255, 255, 255, 0.16);
+        --auth-card: rgba(32, 37, 45, 0.96);
+        --auth-border: #303641;
+        --auth-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+        --auth-heading: #f1f3f6;
+        --auth-text: #e6e8ec;
+        --auth-tagline: #aeb6c2;
+        --auth-muted: #8f98a7;
+        --auth-eyebrow: #7f8998;
+        --auth-btn-bg: #e5e8ee;
+        --auth-btn-border: #e5e8ee;
+        --auth-btn-text: #171a1f;
+    }
+
+    min-height: 100vh;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(64px, 7.5vw, 132px);
+    padding: 48px clamp(28px, 5vw, 96px);
+    color: var(--auth-text);
+    background-color: var(--auth-bg);
+    background-image:
+        linear-gradient(var(--auth-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--auth-grid) 1px, transparent 1px),
+        radial-gradient(circle at 28% 50%, var(--auth-glow-a), transparent 32%),
+        radial-gradient(circle at 77% 50%, var(--auth-glow-b), transparent 36%);
+    background-size: 80px 80px, 80px 80px, auto, auto;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Marcas "+" nos cantos; o canto superior direito fica com o botão de tema. */
+.authShell::before,
+.cornerMark::before,
+.cornerMark::after {
+    content: "+";
+    position: absolute;
+    color: var(--auth-mark);
+    font-size: 22px;
+    font-weight: 300;
+    line-height: 1;
+}
+
+.authShell::before {
+    top: 20px;
+    left: 20px;
+}
+
+.cornerMark::before {
+    bottom: 20px;
+    left: 20px;
+}
+
+.cornerMark::after {
+    right: 20px;
+    bottom: 20px;
+}
+
+.themeToggle {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 1;
+}
+
+.brandPanel {
+    width: min(400px, 40vw);
+    flex: 1 1 400px;
+    max-width: 400px;
+}
+
+.brandName {
+    color: var(--auth-heading);
+    font-size: clamp(48px, 5vw, 62px);
+    font-weight: 700;
+    letter-spacing: -0.06em;
+    line-height: 0.95;
+}
+
+.brandTagline {
+    margin-top: 14px;
+    color: var(--auth-tagline);
+    font-size: 15px;
+    letter-spacing: 0.01em;
+}
+
+.authMain {
+    width: min(500px, 46vw);
+    flex: 1 1 500px;
+    max-width: 500px;
+}
+
+.authCard {
+    width: 100%;
+    min-height: 0;
+    padding: 34px 32px;
+    border: 1px solid var(--auth-border);
+    border-radius: 8px;
+    background: var(--auth-card);
+    box-shadow: var(--auth-shadow);
+}
+
+.eyebrow {
+    color: var(--auth-eyebrow);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.cardTitle {
+    margin-top: 9px;
+    color: var(--auth-heading);
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.cardSubtitle {
+    margin-top: 7px;
+    color: var(--auth-muted);
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.primaryButton {
+    width: 100%;
+    min-height: 40px;
+    color: var(--auth-btn-text);
+    border: 1px solid var(--auth-btn-border);
+    border-radius: 7px;
+    background: var(--auth-btn-bg);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+
+.primaryButton:hover {
+    transform: translateY(-1px);
+}
+
+.primaryButton:disabled {
+    cursor: wait;
+    opacity: 0.6;
+}
+
+@media (max-width: 760px) {
+    .authShell {
+        flex-direction: column;
+        gap: 42px;
+        padding: 72px 24px 36px;
+    }
+
+    .brandPanel,
+    .authMain {
+        width: 100%;
+        max-width: 500px;
+    }
+
+    .brandPanel {
+        text-align: center;
+    }
+}
+
+@media (max-width: 520px) {
+    .authShell {
+        padding: 56px 16px 24px;
+    }
+
+    .brandName {
+        font-size: 44px;
+    }
+
+    .brandTagline {
+        font-size: 13px;
+    }
+
+    .authCard {
+        padding: 28px 22px;
+    }
+}

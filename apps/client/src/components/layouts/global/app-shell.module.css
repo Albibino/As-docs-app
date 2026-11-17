@@ -1,0 +1,55 @@
+.header, .navbar, .aside {
+  background-color: light-dark(#f6f7f9, var(--mantine-color-dark-8));
+}
+
+.navbar {
+  @media (max-width: $mantine-breakpoint-sm) {
+    width: 350px;
+  }
+
+  &[data-collapsed] {
+    @media (max-width: $mantine-breakpoint-sm) {
+      width: 64px;
+    }
+  }
+}
+
+.aside {
+  @media (max-width: $mantine-breakpoint-sm) {
+    width: 350px;
+  }
+}
+
+.aside {
+  @media (max-width: $mantine-breakpoint-sm) {
+    margin-top: 45px;
+  }
+}
+
+.resizeHandle {
+  width: 6px;
+  cursor: col-resize;
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  touch-action: none;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: 2px;
+  }
+
+  &:hover::after, &:active::after {
+    background: light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-5));
+  }
+
+  &[data-collapsed] {
+    width: 16px;
+  }
+}

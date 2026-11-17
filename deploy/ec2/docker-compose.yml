@@ -1,0 +1,14 @@
+# Frontend em cada EC2 da subnet pública (AZ A e AZ B).
+#   cp ../../frontend/.env.example .env   # ajuste BACKEND_URL e PUBLIC_APP_URL
+#   docker compose up -d
+# Para apontar para outro backend: edite .env e `docker compose up -d` (sem rebuild).
+services:
+  frontend:
+    image: ${FRONTEND_IMAGE:-ghcr.io/albibino/as-docs-frontend:latest}
+    env_file: .env
+    ports:
+      - '80:8080'   # o Security Group só libera a porta 80 para o SG do ALB
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: 10m, max-file: '3' }

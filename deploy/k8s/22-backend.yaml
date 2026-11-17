@@ -1,0 +1,110 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: as-docs-backend-storage
+  namespace: as-docs
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: gp3
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: as-docs-backend
+  namespace: as-docs
+spec:
+  # Com STORAGE_DRIVER=local o volume é RWO: mantenha 1 réplica.
+  # Para 2+ réplicas (uma por AZ), use STORAGE_DRIVER=s3 e remova o PVC.
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app: as-docs-backend }
+  template:
+    metadata:
+      labels: { app: as-docs-backend }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: backend
+          image: ghcr.io/albibino/as-docs-backend:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef: { name: as-docs-backend-config }
+            - secretRef: { name: as-docs-backend-secret }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 250m, memory: 512Mi }
+            limits: { memory: 1536Mi }
+          startupProbe:
+            httpGet: { path: /api/health/live, port: 3000 }
+            periodSeconds: 10
+            failureThreshold: 30     # migrações rodam no boot
+          readinessProbe:
+            httpGet: { path: /api/health/live, port: 3000 }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /api/health/live, port: 3000 }
+            periodSeconds: 20
+          volumeMounts:
+            - name: storage
+              mountPath: /app/data/storage
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: as-docs-backend-storage
+---
+# Um único Service:
+#  - dentro do cluster: as-docs-backend.as-docs.svc.cluster.local:3000 (usado pela IA no MCP)
+#  - fora do cluster: NLB INTERNO (sem IP público), usado pelo Nginx das EC2 públicas.
+# Requer o AWS Load Balancer Controller. O DNS do NLB vai em BACKEND_URL do frontend:
+#   kubectl -n as-docs get svc as-docs-backend -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+apiVersion: v1
+kind: Service
+metadata:
+  name: as-docs-backend
+  namespace: as-docs
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "external"
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internal"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    # Restrinja ao SG das EC2 do frontend:
+    # service.beta.kubernetes.io/aws-load-balancer-security-groups: "sg-xxxxxxxx"
+spec:
+  type: LoadBalancer
+  # CIDRs das subnets PÚBLICAS (EC2 do frontend). Ajuste para a sua VPC.
+  loadBalancerSourceRanges:
+    - 10.0.0.0/24
+    - 10.0.1.0/24
+  selector: { app: as-docs-backend }
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+---
+# Entrada no backend: IA (MCP) e o tráfego vindo do NLB (IPs da VPC).
+# Exige NetworkPolicy habilitado no VPC CNI (enableNetworkPolicy=true).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-ingress
+  namespace: as-docs
+spec:
+  podSelector:
+    matchLabels: { app: as-docs-backend }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: { matchLabels: { app: as-docs-ai } }
+        - ipBlock: { cidr: 10.0.0.0/16 }   # CIDR da VPC
+      ports:
+        - port: 3000

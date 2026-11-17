@@ -1,0 +1,76 @@
+/* Restriction marking. Reads as a physical "do not enter" band and keeps the
+   blueprint language the auth shell already established with its + marks. */
+.rail {
+    height: 6px;
+    margin: -34px -32px 26px;
+    border-radius: 8px 8px 0 0;
+    background-image: repeating-linear-gradient(
+        -45deg,
+        rgba(214, 122, 122, 0.85) 0,
+        rgba(214, 122, 122, 0.85) 6px,
+        transparent 6px,
+        transparent 12px
+    );
+}
+
+.identity {
+    margin-top: 24px;
+    padding: 14px 16px;
+    border: 1px solid #343b46;
+    border-left: 2px solid #6f7b8c;
+    border-radius: 0 7px 7px 0;
+    background: #171b21;
+}
+
+.identityLabel {
+    color: #7f8998;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* Monospace because this is an identifier the reader may need to compare
+   character by character against a support message. */
+.identityValue {
+    margin-top: 6px;
+    color: #e7eaf0;
+    font-family: var(--mantine-font-family-monospace, ui-monospace, monospace);
+    font-size: 14px;
+    line-height: 1.4;
+    word-break: break-all;
+}
+
+.reason {
+    margin-top: 18px;
+    color: #b1b9c5;
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.reasonList {
+    margin: 10px 0 0;
+    padding-left: 18px;
+    color: var(--auth-muted, #8f98a7);
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid #2b323c;
+    color: #687382;
+    font-family: var(--mantine-font-family-monospace, ui-monospace, monospace);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+}
+
+@media (max-width: 520px) {
+    .rail {
+        margin: -28px -22px 22px;
+    }
+}

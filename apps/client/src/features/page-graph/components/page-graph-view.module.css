@@ -1,0 +1,180 @@
+.graphSection {
+  flex: 0 0 rem(306px);
+  min-height: 0;
+  /* Sits inside the host sidebar's padding like any other section, so the only
+     separator is the rule above the header. */
+  padding-top: var(--mantine-spacing-xs);
+  border-top: rem(1px) solid
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  /* Transparent so the section picks up whichever sidebar hosts it, in every
+     colour scheme, instead of painting its own surface. */
+  background: transparent;
+  overflow: hidden;
+  transition: flex-basis 140ms ease;
+}
+
+.graphSection[data-collapsed] {
+  flex-basis: rem(42px);
+}
+
+.header {
+  height: rem(30px);
+  padding: 0 var(--mantine-spacing-xs);
+}
+
+.headerButton {
+  display: flex;
+  align-items: center;
+  gap: rem(6px);
+  flex: 1;
+  height: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  cursor: pointer;
+  font: inherit;
+}
+
+/* Same treatment as the other sidebar section headers (Favorites, Pages). */
+.headerLabel {
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dimmed);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chevron {
+  color: var(--mantine-color-dimmed);
+  transform: rotate(-90deg);
+  transition: transform 140ms ease;
+}
+
+.chevron[data-opened] {
+  transform: rotate(0deg);
+}
+
+.canvas {
+  position: relative;
+  height: rem(272px);
+  background: transparent;
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+}
+
+.svg:active {
+  cursor: grabbing;
+}
+
+.edge {
+  stroke: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-3));
+  stroke-width: 1;
+  opacity: 0.32;
+  transition: opacity 120ms ease;
+  vector-effect: non-scaling-stroke;
+}
+
+.edge[data-active] {
+  opacity: 0.75;
+}
+
+.node {
+  cursor: grab;
+  opacity: 0.26;
+  outline: none;
+  transition: opacity 120ms ease;
+  will-change: transform;
+}
+
+.node:active {
+  cursor: grabbing;
+}
+
+.node[data-active] {
+  opacity: 1;
+}
+
+.node circle {
+  fill: light-dark(var(--mantine-color-gray-6), var(--mantine-color-gray-5));
+  stroke: light-dark(var(--mantine-color-white), var(--mantine-color-dark-7));
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+  transition: filter 120ms ease;
+}
+
+/* The page the graph is centred on is the one fixed point, so it carries the
+   strongest contrast of the same grayscale ramp. */
+.node[data-current] circle {
+  fill: light-dark(var(--mantine-color-gray-8), var(--mantine-color-gray-3));
+}
+
+.node[data-isolated] circle {
+  fill: light-dark(var(--mantine-color-gray-5), var(--mantine-color-dark-2));
+}
+
+.node:hover circle,
+.node:focus circle {
+  filter: drop-shadow(
+    0 0 rem(6px)
+      light-dark(var(--mantine-color-gray-7), var(--mantine-color-gray-3))
+  );
+}
+
+.node text {
+  fill: light-dark(var(--mantine-color-gray-8), var(--mantine-color-gray-2));
+  font-family: var(--mantine-font-family);
+  font-size: rem(10px);
+  font-weight: 500;
+  paint-order: stroke;
+  stroke: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  pointer-events: none;
+  user-select: none;
+}
+
+.centerState {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.emptyState {
+  position: absolute;
+  left: var(--mantine-spacing-md);
+  right: var(--mantine-spacing-md);
+  bottom: var(--mantine-spacing-sm);
+  text-align: center;
+  pointer-events: none;
+}
+
+.hiddenCount {
+  position: absolute;
+  right: var(--mantine-spacing-xs);
+  bottom: rem(4px);
+  padding: rem(2px) rem(5px);
+  border-radius: var(--mantine-radius-sm);
+  background: color-mix(in srgb, var(--mantine-color-body) 82%, transparent);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .graphSection,
+  .chevron,
+  .edge,
+  .node,
+  .node circle {
+    transition: none;
+  }
+}

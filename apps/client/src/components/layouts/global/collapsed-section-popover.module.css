@@ -1,0 +1,39 @@
+.iconButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: rem(30px);
+  border-radius: var(--mantine-radius-sm);
+  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+
+  &:hover,
+  &[aria-expanded="true"] {
+    background-color: light-dark(
+      var(--mantine-color-gray-1),
+      var(--mantine-color-dark-6)
+    );
+    color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: 2px;
+  }
+}
+
+.dropdown {
+  /* The dropdown hosts scrollable lists (favorites, page tree), so it must not
+     grow past the viewport. */
+  max-height: min(70vh, rem(480px));
+  overflow: hidden;
+}
+
+.dropdownHeader {
+  padding: rem(4px) var(--mantine-spacing-xs);
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dimmed);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}

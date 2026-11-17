@@ -1,0 +1,31 @@
+.root {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: var(--mantine-spacing-xl);
+}
+
+.header {
+  margin-bottom: var(--mantine-spacing-xl);
+}
+
+.pageRow {
+  width: 100%;
+  padding: rem(7px) var(--mantine-spacing-xs);
+  border-radius: var(--mantine-radius-sm);
+  color: light-dark(var(--mantine-color-dark-7), var(--mantine-color-gray-1));
+  text-decoration: none;
+
+  &:hover {
+    background: light-dark(
+      var(--mantine-color-gray-1),
+      var(--mantine-color-dark-6)
+    );
+  }
+}
+
+@media (max-width: 48em) {
+  .root {
+    padding: var(--mantine-spacing-md);
+  }
+}

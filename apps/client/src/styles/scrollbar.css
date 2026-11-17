@@ -1,0 +1,12 @@
+/*
+ * Hide the browser's native scrollbar everywhere (Firefox + WebKit/Chromium),
+ * without disabling scrolling itself.
+ */
+html {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar {
+  display: none;
+}

@@ -1,0 +1,44 @@
+.input {
+  border: none;
+  border-bottom: 1px solid var(--mantine-color-default-border);
+  border-radius: 0;
+  background-color: transparent;
+  padding-left: 0;
+  padding-right: 0;
+  transition: border-color 120ms ease;
+}
+
+.input:hover {
+  border-bottom-color: var(--mantine-color-placeholder);
+}
+
+.input:focus,
+.input:focus-within {
+  border-bottom-color: var(--mantine-primary-color-filled);
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--mantine-color-dimmed);
+  margin-bottom: 2px;
+}
+
+.createRow {
+  padding-block: 4px 12px;
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.definitionRow {
+  padding-block: 10px;
+  border-bottom: 1px solid var(--mantine-color-default-border);
+  transition: background-color 120ms ease;
+}
+
+.definitionRow:hover {
+  background-color: var(--mantine-color-default-hover);
+}
+
+.definitionRow:last-child {
+  border-bottom: none;
+}
