@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  GoneException,
   HttpCode,
   HttpStatus,
   Post,
@@ -43,6 +44,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('users')
   listUsers(@AuthWorkspace() workspace: Workspace) {
+    if (this.environmentService.isOidcEnabled()) throw new GoneException();
     return this.authService.listSelectableUsers(workspace.id);
   }
 
@@ -54,6 +56,7 @@ export class AuthController {
     @AuthWorkspace() workspace: Workspace,
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
+    if (this.environmentService.isOidcEnabled()) throw new GoneException();
     const token = await this.authService.selectUser(dto.userKey, workspace.id);
     res.setCookie('authToken', token, {
       httpOnly: true,

@@ -51,6 +51,14 @@ server {
         proxy_set_header X-Forwarded-Proto $fwd_proto;
         proxy_read_timeout 300s;
         proxy_buffering off;   # respostas em streaming da IA
+
+        location ~ ^/api/auth/oidc/callback/?$ {
+            # Herda os parâmetros de proxy de /api/. proxy_pass não é herdado.
+            proxy_pass $backend;
+            # Nem erros de upstream podem registrar code/state.
+            access_log off;
+            error_log /dev/null;
+        }
     }
 
     location ^~ /socket.io/ {

@@ -24,7 +24,7 @@ export class TokenService {
     private environmentService: EnvironmentService,
   ) {}
 
-  async generateAccessToken(user: User, sessionId: string): Promise<string> {
+  async generateAccessToken(user: User, sessionId: string, authSource?: 'oidc'): Promise<string> {
     if (isUserDisabled(user)) {
       throw new ForbiddenException();
     }
@@ -35,6 +35,7 @@ export class TokenService {
       workspaceId: user.workspaceId,
       type: JwtType.ACCESS,
       sessionId,
+      authSource,
     };
     return this.jwtService.sign(payload);
   }
@@ -48,9 +49,10 @@ export class TokenService {
       sub: user.id,
       workspaceId,
       type: JwtType.COLLAB,
+      authSource: this.environmentService.isOidcEnabled() ? 'oidc' : undefined,
     };
-    const expiresIn = '24h';
-    return this.jwtService.sign(payload, { expiresIn });
+    const expiresIn = this.environmentService.isOidcEnabled() ? this.environmentService.getJwtTokenExpiresIn() : '24h';
+    return this.jwtService.sign(payload, { expiresIn: expiresIn as import('ms').StringValue });
   }
 
   async generateExchangeToken(
@@ -112,6 +114,13 @@ export class TokenService {
       );
     }
 
+    if (
+      (tokenType === JwtType.ACCESS || tokenType === JwtType.COLLAB) &&
+      this.environmentService.isOidcEnabled() &&
+      (payload.authSource !== 'oidc' || (tokenType === JwtType.ACCESS && !payload.sessionId))
+    ) {
+      throw new UnauthorizedException();
+    }
     return payload;
   }
 }

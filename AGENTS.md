@@ -2,15 +2,21 @@
 
 Este repositório é o app do TCC. Antes de mexer, leia
 `README.md` → `docs/tcc/README.md` → `docs/tcc/03-decisoes.md`. O serviço de
-IA é o repositório irmão `../tcc-docs-ai` (com o seu próprio `AGENTS.md`).
+IA é o repositório irmão `../tcc-docs-ai` (neste checkout, `../As-docs-ai`),
+com o seu próprio `AGENTS.md`.
 
 ## Regras do dono do projeto
 
 - **Commit só quando o dono pedir.** Nada de configuração de git ou
   publicação por conta própria. Construa, teste e documente.
-- Trabalhe **só** neste repositório e no `tcc-docs-ai`.
-- Não adicione ferramentas ou dependências novas. Use o que já está nos
-  `package.json`.
+- Trabalhe **só** neste repositório e no serviço de IA irmão `tcc-docs-ai`
+  (neste checkout, `As-docs-ai`).
+- Não adicione ferramentas ou dependências novas, **exceto o Keycloak na
+  stack Docker Compose local**, autorizado pelo dono para OIDC e OAuth 2.0
+  Client Credentials (D14). Use as bibliotecas já declaradas nos
+  `package.json` e no `pyproject.toml` da IA. Essa exceção não autoriza outros
+  pacotes, ferramentas nem implantação AWS; qualquer ampliação exige nova
+  autorização.
 - A IA usa a chave própria da OpenAI do projeto, que o usuário pôs no `.env`
   (chmod 600). O compose repassa `OPENAI_API_KEY`, `OPENAI_MODEL=gpt-6-luna`,
   `AI_EMBEDDING_PROVIDER=openai` e `AI_CHAT_PROVIDER=openai` ao serviço `ai`.
@@ -24,11 +30,21 @@ IA é o repositório irmão `../tcc-docs-ai` (com o seu próprio `AGENTS.md`).
 ## Invariantes do TCC
 
 1. **Exatamente 2 usuários** (`core/tcc/tcc.constants.ts`), 1 workspace, 1 time
-   e 1 space, criados por `TccSeedService` no boot. Não reintroduza login,
-   cadastro, convites, criação de time ou space, nem publicação.
-2. **A sessão é a JWT de sempre**, emitida em `POST /api/auth/select-user`.
+   e 1 space, criados por `TccSeedService` no boot. **É permitida a entrada
+   OpenID Connect via Keycloak**, com Authorization Code e PKCE, exclusivamente
+   para as duas identidades locais vinculadas a contas do provedor (D14 e
+   `docs/tcc/09-plano-oauth2-oidc.md`). Não reintroduza cadastro aberto,
+   convites, criação de time ou space, nem publicação. Não crie usuários
+   automaticamente no callback OIDC.
+2. **A sessão continua sendo a JWT de sempre**, com cookie `authToken` e
+   registro em `user_sessions`, emitida por
+   `SessionService.createSessionAndToken`. O fluxo atual usa
+   `POST /api/auth/select-user`; a migração autorizada passa a emitir essa
+   mesma sessão após o callback OIDC validado. Na entrega OIDC, desabilite a
+   escolha pública de usuários e não a use como fallback se o provedor falhar.
    Não crie um mecanismo de autenticação paralelo: WebSocket, colaboração e
-   permissões dependem dela. O Clerk foi removido do código, das
+   permissões dependem da sessão existente. Tokens técnicos de serviço não
+   podem substituí-la. O Clerk foi removido do código, das
    dependências e do banco; não o reintroduza. O mesmo vale para o diretório
    externo de clientes (cliente da página, propriedade `customer`), os modelos de
    página (templates) e os módulos billing, cloud, MFA, SCIM, auditoria e
@@ -50,9 +66,14 @@ IA é o repositório irmão `../tcc-docs-ai` (com o seu próprio `AGENTS.md`).
    de `packages/base-formula`, de `require('.../ee/...')` opcional nem de stub
    com esse nome. Recurso pago do Docmost sai; não se reimplementa copiando.
    Ver D13.
-7. Os contratos com a IA (camelCase, eventos SSE e assinatura HMAC) ficam
-   documentados em `tcc-docs-ai/docs/tcc/06-contratos.md`. Mudou de um lado,
-   mude do outro.
+7. Os contratos com a IA (camelCase, eventos SSE e autenticação) ficam
+   documentados em `tcc-docs-ai/docs/tcc/06-contratos.md` (neste checkout,
+   `../As-docs-ai/docs/tcc/06-contratos.md`). **Está autorizada a substituição
+   do HMAC app → IA por OAuth 2.0 Client Credentials**, cobrindo indexação,
+   chat e escrita assistida, com validação de emissor, assinatura, validade,
+   audiência, identidade técnica e escopos. Preserve a delegação MCP do item 5
+   e o `APP_SECRET` usado pela sessão; não crie fallback automático para HMAC.
+   Mudou de um lado, mude do outro. A primeira entrega é somente local.
 
 ## Onde está cada coisa
 

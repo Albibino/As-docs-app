@@ -49,6 +49,25 @@ export class EnvironmentService {
     return this.configService.get<string>('APP_SECRET');
   }
 
+  isOidcEnabled(): boolean {
+    return this.configService.get<string>('OIDC_ENABLED') === 'true';
+  }
+
+  getOidcIssuer(): string {
+    return this.configService.getOrThrow<string>('OIDC_ISSUER');
+  }
+
+  getOidcBackchannelUrl(): string | undefined {
+    return this.configService.get<string>('OIDC_BACKCHANNEL_URL');
+  }
+
+  getOidcWebClient() {
+    return {
+      id: this.configService.getOrThrow<string>('OIDC_CLIENT_ID'),
+      secret: this.configService.getOrThrow<string>('OIDC_CLIENT_SECRET_WEB'),
+    };
+  }
+
   getDocsAiUrl(): string {
     return this.configService.get<string>('DOCS_AI_URL');
   }

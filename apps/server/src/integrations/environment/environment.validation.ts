@@ -38,6 +38,29 @@ export class EnvironmentVariables {
   @IsUrl({ protocols: ['http', 'https'], require_tld: false })
   APP_URL: string;
 
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  OIDC_ENABLED: string;
+
+  @ValidateIf((obj) => obj.OIDC_ENABLED === 'true')
+  @IsNotEmpty()
+  @IsUrl({ protocols: ['http', 'https'], require_protocol: true, require_tld: false })
+  OIDC_ISSUER: string;
+
+  @ValidateIf((obj) => obj.OIDC_ENABLED === 'true' && !!obj.OIDC_BACKCHANNEL_URL)
+  @IsUrl({ protocols: ['http', 'https'], require_protocol: true, require_tld: false })
+  OIDC_BACKCHANNEL_URL: string;
+
+  @ValidateIf((obj) => obj.OIDC_ENABLED === 'true')
+  @IsString()
+  @IsNotEmpty()
+  OIDC_CLIENT_ID: string;
+
+  @ValidateIf((obj) => obj.OIDC_ENABLED === 'true')
+  @IsString()
+  @MinLength(32)
+  OIDC_CLIENT_SECRET_WEB: string;
+
 
 
 

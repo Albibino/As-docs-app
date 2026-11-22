@@ -150,7 +150,7 @@ export function isWorkspaceAdmin(role: string): boolean {
   return role === UserRole.OWNER || role === UserRole.ADMIN;
 }
 
-const SENSITIVE_URL_PREFIXES = ['/api/sso/'];
+const SENSITIVE_URL_PREFIXES = ['/api/sso/', '/api/auth/oidc/'];
 
 export function redactSensitiveUrl(url: string): string {
   if (url && SENSITIVE_URL_PREFIXES.some((prefix) => url.includes(prefix))) {

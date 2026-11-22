@@ -614,6 +614,7 @@ export interface DB {
   audit: Audit;
   authAccounts: AuthAccounts;
   authProviders: AuthProviders;
+  oidcAccounts: { issuer: string; subject: string; userId: string };
   backlinks: Backlinks;
   baseProperties: BaseProperties;
   baseConversionUndos: BaseConversionUndos;
