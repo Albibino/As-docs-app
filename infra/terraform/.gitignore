@@ -1,0 +1,17 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.env
+*.pem
+*.ppk
+eks-acesso.auto.tfvars
+eks-storage.auto.tfvars
+__pycache__/

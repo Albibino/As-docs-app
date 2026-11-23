@@ -1,0 +1,38 @@
+Evidência recebida do usuário: CloudShell, mesma conta AWS Academy.
+Data da sessão: 22/11/2026. Conta: 967931808920. Região: us-east-1.
+
+Na retomada, o backend S3 foi inicializado e apenas o IP público autorizado
+à API EKS foi atualizado. O apply de retomada concluiu:
+Apply complete! Resources: 0 added, 1 changed, 0 destroyed.
+
+Comandos e saídas enviados pelo usuário:
+
+$ aws eks update-kubeconfig --region us-east-1 --name as-docs-eks
+Added new context arn:aws:eks:us-east-1:967931808920:cluster/as-docs-eks to /home/cloudshell-user/.kube/config
+
+$ kubectl get nodes -o wide
+NAME                          STATUS   ROLES    AGE     VERSION               INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                        KERNEL-VERSION                            CONTAINER-RUNTIME
+ip-10-0-10-88.ec2.internal      Ready    <none>   4m36s   v1.37.1-eks-9adbfea    10.0.10.88    <none>        Amazon Linux 2023.12.20261118   6.18.62-127.179.amzn2023.x86_64 (amd64)   containerd://2.3.7+unknown
+ip-10-0-11-113.ec2.internal     Ready    <none>   6m37s   v1.37.1-eks-9adbfea    10.0.11.113   <none>        Amazon Linux 2023.12.20261118   6.18.62-127.179.amzn2023.x86_64 (amd64)   containerd://2.3.7+unknown
+ip-10-0-11-150.ec2.internal     Ready    <none>   8m40s   v1.37.1-eks-9adbfea    10.0.11.150   <none>        Amazon Linux 2023.12.20261118   6.18.62-127.179.amzn2023.x86_64 (amd64)   containerd://2.3.7+unknown
+
+$ kubectl get pods -n kube-system
+NAME                       READY   STATUS    RESTARTS   AGE
+aws-node-8sxpx              2/2     Running   0          4m40s
+aws-node-jp7zh              2/2     Running   0          6m42s
+aws-node-ks6gz              2/2     Running   0          8m45s
+coredns-5cc864d5d8-bcvp9    1/1     Running   0          11m
+coredns-5cc864d5d8-chgkq    1/1     Running   0          11m
+kube-proxy-7xv6l            1/1     Running   0          6m42s
+kube-proxy-hz7xl            1/1     Running   0          8m45s
+kube-proxy-zcx68            1/1     Running   0          4m40s
+
+$ terraform plan
+[Linhas intermediárias de consulta e refresh omitidas neste registro.]
+No changes. Your infrastructure matches the configuration.
+
+Terraform has compared your real infrastructure against your configuration and found no differences, so no changes are needed.
+
+Alcance: confirma a base EKS e a convergência Terraform depois da retomada.
+Não comprova deploy ou funcionamento dos serviços da aplicação, que continuam
+fora desta etapa.
