@@ -32,8 +32,9 @@ A etapa 02 prepara o S3 para o state. O bootstrap Terraform iniciou o bucket, ma
 uma consulta de Object Lock foi negada pela SCP do Academy. O procedimento atual
 confirmou o bucket existente e concluiu bloqueio público, criptografia e
 versionamento por operações S3 específicas, sem alterar políticas do laboratório.
-Só considerar a migração concluída depois de verificar o backend S3, os 22 recursos
-gerenciados no state e um plano sem diferenças.
+A migração foi concluída: backend S3 inicializado, 22 recursos gerenciados no
+state e novo plano sem diferenças. O `backend.tf` permite continuar a mesma rede
+com acesso AWS autorizado; não execute novamente o helper de migração inicial.
 
 O acesso ao repositório GitHub não concede acesso à conta do Academy nem ao bucket.
 O responsável pelo laboratório pode aplicar as alterações revisadas pelo grupo.

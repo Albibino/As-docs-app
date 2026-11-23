@@ -16,4 +16,4 @@ export PATH="$HOME/.local/bin:$PATH"
 export TF_DATA_DIR="/var/tmp/as-docs-terraform-data-${UID}"
 mkdir -p -m 700 "$TF_DATA_DIR" || return 1
 printf 'Dados regeneráveis do Terraform: %s\n' "$TF_DATA_DIR"
-printf '%s\n' 'O state local continua na pasta do projeto.'
+printf '%s\n' 'O state ativo é definido pelo backend do projeto; os dados em /var/tmp são regeneráveis.'

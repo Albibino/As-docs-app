@@ -31,8 +31,17 @@ dos 22 recursos e o plano subsequente sem diferenças. A VPC criada é
 `vpc-04354398b0920234a`, na conta `967931808920`, região `us-east-1`. Os IDs e
 orientações para continuidade estão em `ENTREGA_AO_GRUPO.md`.
 
-O usuário confirmou que a implantação final continuará nesta mesma conta. O state
-atualmente é local no CloudShell do usuário; a migração para S3 é a próxima etapa.
+O usuário confirmou que a implantação final continuará nesta mesma conta. O
+state foi migrado para S3, conforme a evidência abaixo.
+
+## Migração do state S3 — 22/11/2026
+
+O Terraform configurou o backend S3, copiou o state local após confirmação e
+concluiu o `init`. Um segundo `init` normal foi concluído; o `state list` mostrou
+os 22 recursos gerenciados e a consulta das zonas. Um novo plano retornou
+`No changes`, preservando os IDs da rede. Evidência:
+`evidencias/2026-11-22-migracao-state-s3.md`. A configuração do backend remoto
+está em `backend.tf`; nenhum arquivo de state foi incluído no pacote ou no Git.
 
 ## Retomada após reinício do CloudShell — 22/11/2026
 

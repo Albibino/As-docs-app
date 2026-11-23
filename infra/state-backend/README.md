@@ -1,8 +1,10 @@
 # As-docs — etapa 02: state no S3
 
 A rede da conta `967931808920`, região `us-east-1`, já tem 22 recursos criados,
-com plano posterior sem diferenças. O state da rede continua local no CloudShell;
-a migração S3 ainda não foi executada.
+com plano posterior sem diferenças. A migração S3 foi concluída e o state remoto
+foi verificado com novo `init`, 22 recursos gerenciados na lista e `No changes`.
+O backend ativo está em `../terraform/backend.tf`. Os procedimentos de criação
+e migração abaixo ficam como referência; continue com `init` normal.
 
 ## Ajuste após o teste real no Academy
 
@@ -28,8 +30,7 @@ Esta recuperação já foi concluída pelo usuário com o script avulso
 `As_docs_Recuperar_State_S3.sh`. Evidência em
 `evidencias/2026-11-22-configuracao-s3.md`: os quatro bloqueios públicos estão
 `true`, a criptografia é `AES256` e o versionamento está `Enabled`. As instruções
-abaixo permanecem como referência; para continuar, siga para a migração depois
-do intervalo recomendado para o versionamento.
+abaixo permanecem como referência: a migração também já foi concluída.
 
 Envie a versão atualizada de `As_docs_Terraform_Etapa_02_State.zip` ao CloudShell.
 O comando abaixo atualiza somente o código do pacote; o ZIP não contém states nem
@@ -57,6 +58,10 @@ intervalo para organizar a inclusão do código no GitHub; não há espera bloqu
 no script nem migração automática.
 
 ## 2. Migrar o state existente da rede
+
+Etapa já concluída nesta conta. Não repita o helper: ele é apenas para a
+primeira migração. Evidência em
+`../terraform/evidencias/2026-11-22-migracao-state-s3.md`.
 
 Depois de confirmar a configuração e o intervalo de propagação do versionamento,
 execute no CloudShell da mesma conta:
@@ -111,8 +116,8 @@ aws s3api head-object \
 ## Inclusão no repositório
 
 O código de aplicação da infraestrutura fica em `infra/terraform` do As-docs-app.
-Este apoio ao state fica em `infra/state-backend`. Depois de confirmar a migração,
-copie também o `backend.tf` gerado para `infra/terraform` no repositório.
+Este apoio ao state fica em `infra/state-backend`. A migração foi confirmada;
+`infra/terraform/backend.tf` está incluído no pacote atualizado para o repositório.
 
 Compartilhe código e lock file. States, backups, planos, providers e credenciais
 ficam fora do Git. O acesso ao GitHub não concede acesso AWS: os executores precisam
@@ -130,7 +135,8 @@ interrompido pela SCP na leitura Object Lock. O helper de recuperação passou p
 conferência de sintaxe e verificações simuladas de parada por erro/conta incorreta.
 A execução real do helper foi concluída pelo usuário: propriedade do bucket
 conferida, bloqueio público, criptografia e versionamento confirmados. A migração
-e o plano posterior do projeto da rede continuam pendentes no laboratório.
+também foi concluída e verificada com os 22 recursos no state e novo plano sem
+diferenças, preservando os IDs existentes.
 
 ## Referências
 

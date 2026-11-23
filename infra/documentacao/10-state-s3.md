@@ -1,8 +1,9 @@
 # Continuidade da infraestrutura e state S3
 
 A implantação final continuará na conta `967931808920`, `us-east-1`. A rede tem
-22 recursos criados e um plano posterior sem diferenças. O state da rede permanece
-local no CloudShell; a migração S3 ainda não foi executada.
+22 recursos criados e um plano posterior sem diferenças. O state foi migrado para
+S3 após confirmação de cópia pelo usuário. Um novo `init`, a lista dos 22 recursos
+gerenciados e o plano `No changes` confirmaram a continuidade da mesma rede.
 
 O bootstrap Terraform do bucket passou em validação, em 1 teste simulado e no
 plano de 4 adições. O apply foi interrompido na leitura
@@ -22,16 +23,18 @@ públicos `true`, criptografia `AES256` e versionamento `Enabled`. O helper
 preservou os arquivos locais antes da configuração. Evidência em
 `infra/state-backend/evidencias/2026-11-22-configuracao-s3.md`.
 
-O bloqueio de state do backend (`use_lockfile`) é separado de Object Lock. A
-migração do state da rede é considerada concluída somente depois de verificar o
-objeto S3, os 22 recursos gerenciados no state e um plano sem diferenças. Ao
+O bloqueio de state do backend (`use_lockfile`) é separado de Object Lock. O
+Terraform confirmou o backend S3; os 22 recursos continuaram no state e o novo
+plano não indicou alterações. Evidência em
+`infra/terraform/evidencias/2026-11-22-migracao-state-s3.md`. Ao
 habilitar versionamento pela primeira vez, observar o intervalo de 15 minutos
 recomendado pela AWS antes das gravações.
 
 William pediu incluir o Terraform no repositório da aplicação, em `infra/terraform`.
 O apoio ao state fica em `infra/state-backend`. Não incluir states, planos,
-providers ou credenciais no Git. O backend ativo só deve entrar depois da migração
-confirmada. O acesso ao repositório não concede acesso à conta AWS.
+providers ou credenciais no Git. O backend ativo está incluído em
+`infra/terraform/backend.tf`, após a migração confirmada. O acesso ao repositório
+não concede acesso à conta AWS.
 
 William confirmou três nós privados do EKS. Os containers serão executados nesse
 cluster; não foi definida dedicação de um nó a cada serviço. Pedro integrará o

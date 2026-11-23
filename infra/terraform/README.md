@@ -7,6 +7,10 @@ Em 22/11/2026, o usuário criou os 22 recursos desta etapa e confirmou um plano
 posterior sem diferenças. Resultados e evidências: `VERIFICACAO.md`.
 IDs dos recursos e orientação para o grupo: `ENTREGA_AO_GRUPO.md`.
 
+O state foi migrado para S3 e verificado com `init`, os 22 recursos gerenciados
+na lista e um novo plano sem diferenças. `backend.tf` registra o backend remoto;
+quem executar deve usar uma sessão AWS autorizada na conta do laboratório.
+
 ## Entrega desta etapa
 
 | Recurso | Finalidade |
@@ -119,8 +123,8 @@ O `TF_DATA_DIR` aponta o diretório de dados regeneráveis para `/var/tmp`, e o
 `TMPDIR` nesse comando posiciona ali os arquivos temporários da instalação.
 Carregue `cloudshell-env.sh` novamente a cada nova sessão antes dos comandos
 Terraform. Se o CloudShell remover a área temporária, repita o `init`: os
-providers podem ser baixados novamente. O state local continua na pasta do
-projeto dentro do diretório pessoal.
+providers podem ser baixados novamente. O state ativo fica no backend S3;
+preserve as cópias locais anteriores como backup.
 
 Se sua pasta ainda for a primeira versão do pacote, que não incluía esse script,
 configure manualmente:
@@ -169,17 +173,18 @@ as permissões do laboratório.
 
 ## Estado e colaboração
 
-O state é local nesta etapa e fica nesta pasta. Ele vincula o código aos recursos
-criados. Preserve `terraform.tfstate` e seu backup. Esses arquivos, `.terraform/`
-e os planos estão no `.gitignore` e não devem entrar no Git. Inclua no Git o
-`.terraform.lock.hcl`, que fixa a versão do provider.
+O state ativo está no S3 configurado em `backend.tf`. Ele vincula o código aos
+recursos existentes. Inclua `backend.tf` e `.terraform.lock.hcl` no Git; eles
+guardam a configuração do backend e a versão do provider. States, backups,
+`.terraform/` e planos ficam fora do Git, conforme o `.gitignore`.
 
 O armazenamento temporário serve somente aos dados de trabalho e dependências;
 não mova o projeto inteiro nem o state para `/tmp` ou `/var/tmp`.
 
-Definam uma pessoa/ambiente responsável por aplicar esta infraestrutura. O
-GitHub compartilha código, mas não compartilha o state. Um backend compartilhado
-e seu bloqueio serão configurados antes de permitir execuções concorrentes.
+O backend S3 compartilhado usa `use_lockfile = true`. O acesso ao GitHub não
+concede acesso AWS: cada executor precisa de uma sessão autorizada e das
+permissões de acesso ao state e ao lock. Coordenem as alterações da configuração
+e mantenham os executores usando esse mesmo backend.
 
 Guarde como evidências o plano, os outputs, as quatro sub-redes com suas zonas e
 as regras dos Security Groups. Depois, será preciso testar funcionamento da
@@ -199,8 +204,7 @@ recursos parem de consumir seu orçamento.
 
 ## Próximas etapas
 
-- Concluir a configuração do bucket e migrar o state com o pacote da etapa 02, verificando
-  a preservação dos 22 recursos e um plano sem diferenças.
+- Usar o backend S3 já migrado para continuar a infraestrutura existente.
 - Preparar o EKS com três nós privados, conforme confirmação de William.
 - Conferir políticas e relações de confiança das funções existentes do EKS.
 - Fechar a configuração de PostgreSQL 18 e Redis 8; a IA usa Vector Sets.

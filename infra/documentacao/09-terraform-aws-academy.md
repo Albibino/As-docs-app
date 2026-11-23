@@ -14,9 +14,9 @@ somente as duas regiões permitidas pelo laboratório. Os ARNs das funções exi
 do cluster e dos nós EKS estão em `terraform.tfvars`. Nenhuma função IAM é criada.
 
 NAT, computação, RDS, ALB, WAF e deploy são etapas seguintes. As sub-redes privadas
-têm apenas rotas locais até a configuração da saída NAT. O state é local nesta
-etapa; sua migração para S3 está preparada em `infra/state-backend`, ainda sem
-execução. O usuário confirmou a continuidade na mesma conta AWS.
+têm apenas rotas locais até a configuração da saída NAT. O state foi migrado
+para S3 e verificado com os 22 recursos gerenciados e um novo plano sem diferenças.
+O usuário confirmou a continuidade na mesma conta AWS.
 
 ## Pendências
 
