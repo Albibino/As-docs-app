@@ -13,3 +13,5 @@ serviço de IA é o repositório irmão `tcc-docs-ai`, que tem a sua própria pa
 | [05-testes.md](05-testes.md) | Como rodar os testes e o E2E. |
 | [06-docker-e-railway.md](06-docker-e-railway.md) | Stack local e publicação no Railway. |
 | [08-roteiro-de-teste-manual.md](08-roteiro-de-teste-manual.md) | Passo a passo para testar pela interface, com respostas esperadas. |
+| [09-plano-oauth2-oidc.md](09-plano-oauth2-oidc.md) | Escopo e critérios de aceite de OIDC e OAuth 2.0 Client Credentials. |
+| [10-keycloak-local.md](10-keycloak-local.md) | Subir Keycloak no Compose local, provisionar as duas contas e ativar o login OIDC. |

@@ -195,3 +195,58 @@ existem mais. O chat (`features/assistant`) e a escrita assistida
 `02-cortes-de-funcionalidade.md`. Não reintroduza código sob a licença
 empresarial, nem um stub chamado `ee`.
 
+## D14. Escopo confirmado para OAuth 2.0 e OpenID Connect (entrega local)
+
+Após o planejamento solicitado, o dono confirmou:
+
+- **Keycloak** como provedor de identidade e servidor de autorização;
+- manutenção dos **dois usuários locais atuais**, vinculados a duas contas do
+  provedor, sem cadastro aberto;
+- **primeira entrega somente local**, usando a stack Docker Compose existente;
+  implantação AWS fica para uma etapa posterior.
+
+O objetivo continua sendo entrada OIDC com Authorization Code + PKCE e
+substituição do HMAC app → IA por Client Credentials. O diagnóstico, a
+arquitetura recomendada, as etapas e os testes estão em
+[09-plano-oauth2-oidc.md](09-plano-oauth2-oidc.md).
+
+**Autorização posterior:** o dono autorizou iniciar a implementação e pediu
+expressamente a remoção dos bloqueios no `AGENTS.md`. O arquivo foi revisado
+para permitir a entrada OIDC dos dois usuários, o Keycloak na stack local e
+a migração do HMAC app → IA para Client Credentials. A exceção de ferramenta
+se limita ao Keycloak local; novos pacotes ou ferramentas continuam exigindo
+autorização específica. A restrição ao trabalho nos dois repositórios foi
+preservada, explicitando o nome `As-docs-ai` usado neste checkout.
+
+## D15. Login local por Keycloak, com a mesma sessão do app
+
+Com `OIDC_ENABLED=true`, `/api/auth/users` e `/api/auth/select-user` deixam
+de servir o seletor. Sessões e tokens de colaboração do fluxo legado não
+são aceitos nesse modo. O BFF é um cliente confidencial: usa Authorization Code
+com PKCE S256 e valida o ID Token antes de resolver `(iss, sub)` na tabela
+`oidc_accounts`. O callback não cria nem vincula usuários automaticamente.
+
+O navegador recebe somente o cookie da sessão local, não tokens do Keycloak.
+O fluxo usa uma transação Redis de cinco minutos vinculada ao navegador e
+consumida uma vez. O logout revoga a sessão local; o próximo login exige nova
+autenticação no provedor. Isso não encerra a sessão SSO do Keycloak nem
+promete revogação imediata das conexões de colaboração já abertas.
+
+O modo legado permanece disponível onde OIDC não foi ativado; não serve de
+fallback quando o provedor OIDC está indisponível. O Compose local usa um JWT
+de oito horas por padrão. HTTP e `start-dev` ficam restritos ao laboratório.
+O transporte app → IA tem configuração independente (D16).
+Ver [10-keycloak-local.md](10-keycloak-local.md).
+
+## D16. Client Credentials entre o app e a IA no Compose local
+
+O backend usa clientes técnicos distintos para indexação e assistência. Ele
+pede apenas o escopo da operação e guarda tokens em memória por cliente e
+escopo. Em `401` antes do SSE, tenta uma vez com um token renovado e preserva
+o corpo e a chave de idempotência; `403` não provoca renovação.
+
+A IA verifica assinatura, emissor, audiência, prazo, conta de serviço e
+escopo, e restringe cada cliente ao workspace cadastrado. O Compose usa
+`DOCS_AI_OAUTH_ENABLED` nos dois serviços. Quando ativa, essa configuração
+não aceita HMAC. O login web, `APP_SECRET` e a delegação MCP permanecem
+separados. Consulte [o roteiro de ativação](10-keycloak-local.md#5-clientes-técnicos-da-ia).

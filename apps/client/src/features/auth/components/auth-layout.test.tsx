@@ -6,6 +6,10 @@ vi.mock("@/components/theme-toggle.tsx", () => ({
   ThemeToggle: () => <button type="button" data-testid="theme-toggle" />,
 }));
 
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: (key: string) => key }),
+}));
+
 describe("AuthLayout", () => {
   it("mostra o nome do produto sem a logo e oferece a troca de tema", () => {
     const { container } = render(

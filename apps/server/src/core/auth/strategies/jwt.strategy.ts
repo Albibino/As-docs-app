@@ -41,6 +41,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     if (payload.type !== JwtType.ACCESS) {
       throw new UnauthorizedException();
     }
+    if (this.environmentService.isOidcEnabled() &&
+      (payload.authSource !== 'oidc' || !payload.sessionId)) {
+      throw new UnauthorizedException();
+    }
 
     const workspace = await this.workspaceRepo.findById(payload.workspaceId);
 

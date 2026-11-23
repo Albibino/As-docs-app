@@ -7,16 +7,14 @@ import {
 } from '@nestjs/common';
 import { InjectKysely } from 'nestjs-kysely';
 import { sql } from 'kysely';
-import { randomUUID } from 'node:crypto';
 import { KyselyDB } from '@tcc-docs/db/types/kysely.types';
 import { User } from '@tcc-docs/db/types/entity.types';
 import { EnvironmentService } from '../environment/environment.service';
 import { PagePermissionRepo } from '@tcc-docs/db/repos/page/page-permission.repo';
-import { signAiRequest } from './ai-signing';
+import { AiHttpClient } from './ai-http-client.service';
 import { McpCredentialService } from './mcp-credential.service';
 import { SseParser } from './sse-parser';
 
-const CHAT_PATH = '/v1/chat/stream';
 const HISTORY_TURNS = 10;
 const MAX_QUESTION_CHARS = 4_000;
 
@@ -70,6 +68,7 @@ export class AiChatService {
     private readonly environment: EnvironmentService,
     private readonly credentials: McpCredentialService,
     private readonly pagePermissionRepo: PagePermissionRepo,
+    private readonly ai: AiHttpClient,
   ) {}
 
   // --- conversas ------------------------------------------------------------
@@ -258,22 +257,9 @@ export class AiChatService {
 
     let response: Response;
     try {
-      response = await fetch(new URL(CHAT_PATH, this.environment.getDocsAiUrl()), {
-        method: 'POST',
-        headers: {
-          ...signAiRequest({
-            secret: this.environment.getDocsAiHmacSecret(),
-            path: CHAT_PATH,
-            body,
-            idempotencyKey: randomUUID(),
-          }),
-          accept: 'text/event-stream',
-        },
-        body,
-        signal,
-      });
-    } catch (error) {
-      this.logger.warn(`tcc-docs-ai unreachable: ${(error as Error).message}`);
+      response = await this.ai.post('chat', body, signal);
+    } catch {
+      this.logger.warn('tcc-docs-ai unavailable for chat');
       emit({ type: 'error', code: 'ai_unavailable', message: 'ai_unavailable', retryable: true });
       return;
     }

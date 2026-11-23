@@ -5,8 +5,8 @@ import {
   Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { createHash, createHmac, randomUUID } from 'node:crypto';
 import { EnvironmentService } from '../environment/environment.service';
+import { AiHttpClient } from '../tcc-ai/ai-http-client.service';
 import { PageHistoryRepo } from '@tcc-docs/db/repos/page/page-history.repo';
 import { InjectKysely } from 'nestjs-kysely';
 import { KyselyDB } from '@tcc-docs/db/types/kysely.types';
@@ -21,7 +21,6 @@ import type {
   SpacePageRef,
 } from './assisted-writing.types';
 
-const GENERATION_PATH = '/v1/generations/stream';
 // The input token budget is enforced upstream by the AI service, which counts the final
 // payload. These two caps stay because they bound the query and a single title,
 // not the token spend.
@@ -48,6 +47,7 @@ export class AssistedWritingService {
     private readonly pageHistoryRepo: PageHistoryRepo,
     private readonly pagePermissionRepo: PagePermissionRepo,
     @InjectKysely() private readonly db: KyselyDB,
+    private readonly ai: AiHttpClient,
   ) {}
 
   /**
@@ -179,14 +179,11 @@ export class AssistedWritingService {
     }
   }
 
-  buildSignedRequest(
+  private buildPayload(
     input: AssistedWritingInput,
     tenantId: string,
     spacePages: SpacePageRef[] = [],
   ) {
-    if (!this.environment.isDocsAiConfigured()) {
-      throw new ServiceUnavailableException('AI service is not configured');
-    }
     const payload: SAiGenerationRequest = {
       tenantId,
       sessionId: input.sessionId,
@@ -213,37 +210,7 @@ export class AssistedWritingService {
           }
         : {}),
     };
-    const body = JSON.stringify(payload);
-    const timestamp = Math.floor(Date.now() / 1000).toString();
-    const idempotencyKey = randomUUID();
-    const bodyHash = createHash('sha256').update(body).digest('hex');
-    const canonical = [
-      timestamp,
-      'POST',
-      GENERATION_PATH,
-      idempotencyKey,
-      bodyHash,
-    ].join('\n');
-    const signature = createHmac(
-      'sha256',
-      this.environment.getDocsAiHmacSecret(),
-    )
-      .update(canonical)
-      .digest('hex');
-    const url = new URL(GENERATION_PATH, this.environment.getDocsAiUrl());
-    return {
-      url,
-      body,
-      idempotencyKey,
-      headers: {
-        'content-type': 'application/json',
-        accept: 'text/event-stream',
-        'x-ai-consumer': 'docs-app',
-        'x-ai-timestamp': timestamp,
-        'idempotency-key': idempotencyKey,
-        'x-ai-signature': `v1=${signature}`,
-      },
-    };
+    return payload;
   }
 
   async openStream(
@@ -253,40 +220,29 @@ export class AssistedWritingService {
     spacePages: SpacePageRef[] = [],
   ): Promise<Response> {
     this.validateInput(input);
-    const signed = this.buildSignedRequest(input, tenantId, spacePages);
-    const startedAt = Date.now();
-    let lastError: unknown;
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      try {
-        const response = await fetch(signed.url, {
-          method: 'POST',
-          headers: signed.headers,
-          body: signed.body,
-          signal,
-        });
-        this.logger.log({
-          event: 's_ai_stream_opened',
-          tenantId,
-          latencyMs: Date.now() - startedAt,
-          status: response.status,
-          attempt,
-        });
-        return response;
-      } catch (error) {
-        lastError = error;
-        if (signal.aborted) throw error;
-        // fetch rejected before response headers: zero upstream bytes observed.
-        if (attempt === 0) continue;
-      }
+    if (!this.environment.isDocsAiConfigured()) {
+      throw new ServiceUnavailableException('AI service is not configured');
     }
-    this.logger.error({
-      event: 's_ai_connection_failed',
-      tenantId,
-      latencyMs: Date.now() - startedAt,
-    });
-    throw new BadGatewayException(
-      lastError instanceof Error ? lastError.message : 'AI service unavailable',
-    );
+    const body = JSON.stringify(this.buildPayload(input, tenantId, spacePages));
+    const startedAt = Date.now();
+    try {
+      const response = await this.ai.post('writing', body, signal);
+      this.logger.log({
+        event: 's_ai_stream_opened',
+        tenantId,
+        latencyMs: Date.now() - startedAt,
+        status: response.status,
+      });
+      return response;
+    } catch {
+      if (signal.aborted) signal.throwIfAborted();
+      this.logger.error({
+        event: 's_ai_connection_failed',
+        tenantId,
+        latencyMs: Date.now() - startedAt,
+      });
+      throw new BadGatewayException('AI service unavailable');
+    }
   }
 
   createMetricsTransform(tenantId: string, startedAt: number): Transform {

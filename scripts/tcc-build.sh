@@ -15,14 +15,14 @@ usage() { sed -n '2,10p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
 SERVICES=() NO_CACHE=()
 for arg in "$@"; do
   case "$arg" in
-    --app) SERVICES+=(app) ;;
+    --app) SERVICES+=(frontend backend) ;;
     --ia | --ai) SERVICES+=(ai) ;;
     --sem-cache) NO_CACHE=(--no-cache) ;;
     -h | --help) usage; exit 0 ;;
     *) usage >&2; fail "Opção desconhecida: $arg" ;;
   esac
 done
-[ ${#SERVICES[@]} -gt 0 ] || SERVICES=(app ai)
+[ ${#SERVICES[@]} -gt 0 ] || SERVICES=(frontend backend ai)
 
 require_docker
 require_env
@@ -35,14 +35,15 @@ elapsed=$((SECONDS - started))
 
 for svc in "${SERVICES[@]}"; do
   case "$svc" in
-    app) image=tcc-docs-app:local ;;
-    ai) image=tcc-docs-ai:local ;;
+    frontend) image=as-docs-frontend:local ;;
+    backend) image=as-docs-backend:local ;;
+    ai) image=as-docs-ai:local ;;
   esac
   docker image inspect "$image" >/dev/null 2>&1 || fail "A imagem $image não foi gerada."
   ok "$image ($(docker image inspect --format '{{.Size}}' "$image" | awk '{printf "%.0f MB", $1/1024/1024}'))"
 done
 ok "Build concluído em $((elapsed / 60))min$((elapsed % 60))s."
 
-if [ "$(service_status app)" != "ausente" ] || [ "$(service_status ai)" != "ausente" ]; then
+if [ "$(service_status backend)" != "ausente" ] || [ "$(service_status ai)" != "ausente" ]; then
   info "A stack está no ar com as imagens antigas. Para aplicar: scripts/tcc-up.sh"
 fi

@@ -7,6 +7,7 @@ import { AiIndexingService } from './ai-indexing.service';
 import { DocsMcpController } from './docs-mcp.controller';
 import { DocsReadService } from './docs-read.service';
 import { McpCredentialService } from './mcp-credential.service';
+import { AiHttpClientModule } from './ai-http-client.module';
 
 /**
  * Integração do TCC com o tcc-docs-ai:
@@ -17,6 +18,7 @@ import { McpCredentialService } from './mcp-credential.service';
  */
 @Module({
   imports: [
+    AiHttpClientModule,
     JwtModule.registerAsync({
       useFactory: (environment: EnvironmentService) => ({
         secret: environment.getAppSecret(),

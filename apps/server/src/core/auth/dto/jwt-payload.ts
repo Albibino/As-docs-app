@@ -12,12 +12,14 @@ export type JwtPayload = {
   workspaceId: string;
   type: 'access';
   sessionId?: string;
+  authSource?: 'oidc';
 };
 
 export type JwtCollabPayload = {
   sub: string;
   workspaceId: string;
   type: 'collab';
+  authSource?: 'oidc';
 };
 
 export type JwtExchangePayload = {
