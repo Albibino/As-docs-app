@@ -1,0 +1,5 @@
+# Usar somente dominio real confirmado e certificado ISSUED que o cubra.
+# Copiar para tls.auto.tfvars depois de preencher os DOIS valores.
+# Antes: o modo de infraestrutura e HTTP temporario; nao significa HTTPS pronto.
+public_hostname    = ""
+acm_certificate_arn = ""

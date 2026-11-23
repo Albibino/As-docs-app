@@ -1,0 +1,12 @@
+diff --git a/frontend/nginx/default.conf.template b/frontend/nginx/default.conf.template
+--- a/frontend/nginx/default.conf.template
++++ b/frontend/nginx/default.conf.template
+@@ -6,7 +6,7 @@
+ 
+ # Atrás do ALB o protocolo original vem em X-Forwarded-Proto; local, usa o do Nginx.
+ map $http_x_forwarded_proto $fwd_proto {
+-    default $fwd_proto;
++    default $http_x_forwarded_proto;
+     ''      $scheme;
+ }
+ 

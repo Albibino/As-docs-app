@@ -19,17 +19,17 @@ nesta mesma conta AWS.
 | Sub-rede pública B | `subnet-007a707f3b0232699` — `10.0.1.0/24`, `us-east-1b` |
 | Sub-rede privada A | `subnet-02ad1d11473fac085` — `10.0.10.0/24`, `us-east-1a` |
 | Sub-rede privada B | `subnet-063bcd96ac81fc44d` — `10.0.11.0/24`, `us-east-1b` |
-| SG do futuro ALB | `sg-09949bead0e930a24` |
-| SG do futuro frontend | `sg-0a5118ad08038a7e8` |
+| SG do ALB | `sg-09949bead0e930a24` |
+| SG do frontend | `sg-0a5118ad08038a7e8` |
 | Cluster EKS | `as-docs-eks` |
 | Node group | `as-docs-private-storage` — desejado/minimo/maximo 3; LabRole existente |
 | SG do cluster | `sg-0a3d3f64bea7b6b6e` |
 | NAT A | `nat-0581b6cf974af20ee` |
 | NAT B | `nat-0ca37920f417edc2e` |
 
-Os grupos de segurança estão preparados; ALB e EC2 ainda não foram criados.
 As sub-redes privadas têm saída pelo NAT da mesma zona. Os nós não recebem IP
-público. Nenhuma instância frontend foi criada por esta etapa.
+público. ALB, NLB, EC2 frontend e WAF foram acrescentados em 23/11 em state
+separado: ../edge. Ver ../edge/ENTREGA_AO_MUCI.md.
 
 ## Continuidade
 
@@ -63,7 +63,8 @@ O responsável pelo laboratório pode aplicar as alterações revisadas pelo gru
 EKS, node group, NATs, add-ons basicos, CSI e RDS foram aplicados. A prova real
 de volume temporario passou; o plano final da base retornou No changes em
 23/11/2026. Base: 36 recursos; banco: cinco em outro state. O grupo antigo foi
-removido apos criar os substitutos. NLB, ALB/WAF, EC2 frontend e deploy continuam
+removido apos criar os substitutos. Em 23/11 a borda foi aplicada e verificada:
+20 adicoes e plano posterior No changes. Deploy real, DNS e HTTPS continuam
 pendentes. Os manifests do deploy criarao os PVCs reais de 5 GiB e 10 GiB.
 Entrega do RDS em ../database/ENTREGA_AO_MUCI.md; resultado da etapa 05 em
 evidencias/2026-11-23-conclusao-volumes.md.

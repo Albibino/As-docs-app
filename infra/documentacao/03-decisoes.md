@@ -1,5 +1,35 @@
 # Decisões
 
+## D21. Retomada do laboratorio em 23/11/2026
+
+Na retomada, novos nos apresentaram kms:Decrypt/AccessDenied e o grupo informou
+AsgInstanceLaunchFailures. A chave AWS estava habilitada; ListGrants retornou
+vazio. Foi preparada uma alternativa com chave propria, mas ela NAO foi aplicada.
+A consulta posterior confirmou tres novos nos Ready sem IP publico; portanto,
+a proposta de chave/substituicao foi retirada para preservar a configuracao atual.
+O acesso kubectl foi restabelecido atualizando somente o IP /32 do CloudShell.
+Essa alteracao de acesso nao explica a recuperacao dos nos, que ja tinham cerca
+de seis minutos de vida. O grupo ainda informava DEGRADED na consulta seguinte;
+o novo teste real de persistencia passou e os tres lancamentos mais recentes
+foram Successful. O status administrativo final ainda deve ser reconfirmado.
+O RDS estava available. Ver infra/terraform/evidencias/2026-11-23-retomada-lab.md.
+
+## D22. Borda em state separado e NLB gerenciado pelo Terraform
+
+Em 23/11/2026 o usuario confirmou NLB no Terraform e Service NodePort entregue
+para o Muci. Preparou-se infra/edge com duas EC2 publicas, ALB/WAF e NLB interno
+3000 para NodePort 30300. O Service DNS interno na porta 3000 e preservado.
+Nao requer instalar AWS Load Balancer Controller e nao aplica manifests/secrets
+da aplicacao. O state edge e separado da base e do banco; somente associa o
+novo target group ao ASG EKS existente, sem alterar a escala.
+Dominio e certificado nao confirmados: HTTP e apenas provisao temporaria;
+HTTPS/redirect ficam condicionados a certificado real e DNS do grupo. O codigo
+foi aplicado com 20 adicoes, nenhuma alteracao/exclusao, apos tres testes
+simulados passarem e revisar o plano real. A verificacao pos-apply confirmou
+EC2/SSM, discos, LBs, WAF/MCP e o plano seguinte retornou No changes. A saude
+real dos targets e os testes de aplicacao ainda exigem os deploys do Muci.
+Ver 15-borda-academy.md e as evidencias da etapa.
+
 ## D1. Sem login, mas com a mesma sessão JWT
 
 **Decisão:** `POST /api/auth/select-user {userKey}` recebe `usuario-1` ou

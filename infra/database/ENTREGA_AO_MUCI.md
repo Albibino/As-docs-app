@@ -17,7 +17,7 @@
 | State | S3 as-docs/database.tfstate no bucket de state existente |
 
 O apply criou cinco recursos e o plano posterior retornou No changes.
-A rede/EKS continua no outro state, com seus 35 recursos.
+A rede/EKS continua no outro state, com 36 recursos apos acrescentar o CSI. A borda tem outros 20 em edge.tfstate.
 
 O Secret do backend deve receber DATABASE_URL no formato documentado pelo app:
 

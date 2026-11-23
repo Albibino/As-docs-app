@@ -1,0 +1,19 @@
+# Entregar ao Muci: substituir SOMENTE o Service em deploy/k8s/22-backend.yaml
+# por este bloco. PVC/Deployment/NetworkPolicy e o nome DNS interno sao mantidos.
+# Nao aplicar depois o Service antigo type: LoadBalancer, pois ele reverteria
+# este contrato e tentaria criar outro balanceador pelo controller ausente.
+apiVersion: v1
+kind: Service
+metadata:
+  name: as-docs-backend
+  namespace: as-docs
+spec:
+  type: NodePort
+  externalTrafficPolicy: Cluster
+  selector:
+    app: as-docs-backend
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+      nodePort: 30300

@@ -3,6 +3,16 @@
 A infraestrutura da adaptação para o trabalho de Auditoria e Segurança de
 Sistemas fica em `infra/terraform`, com instruções no README dessa pasta.
 
+## Situacao atual em 23/11/2026
+
+Rede/EKS/CSI (36), banco RDS (5) e borda (20) estao aplicados em tres states.
+A borda passou na verificacao real de EC2/SSM, discos, LBs, WAF 403 e MCP 404;
+o plano posterior retornou No changes. Deploy, saude dos targets reais, DNS/TLS
+e testes funcionais/de restauracao ainda estao pendentes. A retomada confirmou
+tres novos nos Ready e nova prova de persistencia aprovada, apos falhas iniciais
+de lancamento. Ver 12-banco-academy.md, 13-volumes-academy.md e 15-borda-academy.md.
+As secoes a seguir preservam o historico da etapa inicial de rede/EKS.
+
 ## Etapa 01 — rede
 
 Implementa VPC, duas sub-redes públicas, duas privadas, Internet Gateway, rotas
