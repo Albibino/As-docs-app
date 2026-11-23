@@ -76,8 +76,21 @@ export class EnvironmentService {
     return this.configService.get<string>('DOCS_AI_HMAC_SECRET');
   }
 
+  isDocsAiOAuthEnabled(): boolean {
+    return this.configService.get<string>('DOCS_AI_OAUTH_ENABLED') === 'true';
+  }
+
+  getDocsAiOAuthSecret(client: 'indexer' | 'assistant'): string {
+    return this.configService.getOrThrow<string>(
+      client === 'indexer' ? 'OIDC_CLIENT_SECRET_INDEXER' : 'OIDC_CLIENT_SECRET_ASSISTANT',
+    );
+  }
+
   isDocsAiConfigured(): boolean {
-    return Boolean(this.getDocsAiUrl() && this.getDocsAiHmacSecret());
+    return Boolean(
+      this.getDocsAiUrl() &&
+        (this.isDocsAiOAuthEnabled() || this.getDocsAiHmacSecret()),
+    );
   }
   /** TCC: URL pública que o tcc-docs-ai usa para chegar ao servidor MCP (/mcp). */
   isAiMcpEnabled(): boolean {

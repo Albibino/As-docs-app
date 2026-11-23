@@ -4,7 +4,7 @@
 set -euo pipefail
 
 TCC_APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TCC_ENV_FILE="$TCC_APP_DIR/.env"
+TCC_ENV_FILE="${TCC_ENV_FILE:-$TCC_APP_DIR/.env}"
 
 if [ -t 1 ]; then
   C_OK=$'\033[32m' C_WARN=$'\033[33m' C_ERR=$'\033[31m' C_DIM=$'\033[2m' C_END=$'\033[0m'
@@ -22,7 +22,7 @@ fail() {
 
 # docker compose sempre a partir do tcc-docs-app, de qualquer pasta.
 compose() {
-  docker compose --project-directory "$TCC_APP_DIR" -f "$TCC_APP_DIR/docker-compose.yml" "$@"
+  docker compose --project-directory "$TCC_APP_DIR" --env-file "$TCC_ENV_FILE" -f "$TCC_APP_DIR/docker-compose.yml" "$@"
 }
 
 # Valor de uma variável do .env, sem executar o arquivo e sem imprimir nada.
@@ -45,8 +45,8 @@ require_docker() {
 # Caminho do repositório da IA, como o docker-compose.yml resolve.
 ai_dir() {
   local path
-  path="$(env_value TCC_DOCS_AI_PATH)"
-  path="${path:-../tcc-docs-ai}"
+  path="${AS_DOCS_AI_PATH-$(env_value AS_DOCS_AI_PATH)}"
+  path="${path:-../As-docs-ai}"
   case "$path" in
     /*) printf '%s' "$path" ;;
     *) (cd "$TCC_APP_DIR" && cd "$path" 2>/dev/null && pwd) || printf '%s/%s' "$TCC_APP_DIR" "$path" ;;
@@ -56,15 +56,19 @@ ai_dir() {
 require_ai_repo() {
   local dir
   dir="$(ai_dir)"
-  [ -f "$dir/Dockerfile" ] || fail "Repositório da IA não encontrado em $dir (ajuste TCC_DOCS_AI_PATH no .env)."
+  [ -f "$dir/Dockerfile" ] || fail "Repositório da IA não encontrado em $dir (ajuste AS_DOCS_AI_PATH no .env)."
 }
 
 # Confere o .env sem nunca mostrar valores.
 require_env() {
   [ -f "$TCC_ENV_FILE" ] || fail "Falta $TCC_ENV_FILE. Crie com: cp .env.example .env (e preencha os segredos)."
-  local missing=()
-  for key in APP_SECRET DOCS_AI_HMAC_SECRET; do
-    [ -n "$(env_value "$key")" ] || missing+=("$key")
+  local missing=() key
+  local required=(APP_SECRET)
+  if [ "${DOCS_AI_OAUTH_ENABLED-$(env_value DOCS_AI_OAUTH_ENABLED)}" != true ]; then
+    required+=(DOCS_AI_HMAC_SECRET)
+  fi
+  for key in "${required[@]}"; do
+    [ -n "${!key-$(env_value "$key")}" ] || missing+=("$key")
   done
   [ ${#missing[@]} -eq 0 ] || fail "Defina no .env: ${missing[*]} (gere com: openssl rand -hex 32)."
 

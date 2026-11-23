@@ -71,7 +71,7 @@ describeDb('TCC versioned index — Postgres', () => {
       new PagePermissionRepo(db as any),
       spaceMemberRepo,
     );
-    indexing = new AiIndexingService(db as any, env);
+    indexing = new AiIndexingService(db as any, env, null);
   });
 
   afterAll(async () => {

@@ -8,10 +8,9 @@ import { InjectKysely } from 'nestjs-kysely';
 import { sql } from 'kysely';
 import { KyselyDB } from '@tcc-docs/db/types/kysely.types';
 import { EnvironmentService } from '../environment/environment.service';
-import { signAiRequest } from './ai-signing';
+import { AiHttpClient } from './ai-http-client.service';
 import { pageContentToMarkdown } from './page-markdown';
 
-const INDEX_PATH = '/v1/index/pages';
 const BATCH_SIZE = 20;
 
 export interface PendingPage {
@@ -51,6 +50,7 @@ export class AiIndexingService implements OnApplicationBootstrap, OnModuleDestro
   constructor(
     @InjectKysely() private readonly db: KyselyDB,
     private readonly environment: EnvironmentService,
+    private readonly ai: AiHttpClient,
   ) {}
 
   onApplicationBootstrap() {
@@ -131,19 +131,9 @@ export class AiIndexingService implements OnApplicationBootstrap, OnModuleDestro
       tenantId: workspaceId,
       pages: pages.map((page) => this.toIndexPayload(page)),
     });
-    const response = await fetch(
-      new URL(INDEX_PATH, this.environment.getDocsAiUrl()),
-      {
-        method: 'POST',
-        headers: signAiRequest({
-          secret: this.environment.getDocsAiHmacSecret(),
-          path: INDEX_PATH,
-          body,
-        }),
-        body,
-      },
-    );
+    const response = await this.ai.post('index', body);
     if (!response.ok) {
+      await response.body?.cancel().catch(() => undefined);
       throw new Error(`tcc-docs-ai index responded ${response.status}`);
     }
     const { results } = (await response.json()) as { results: IndexResult[] };

@@ -235,5 +235,18 @@ promete revogação imediata das conexões de colaboração já abertas.
 O modo legado permanece disponível onde OIDC não foi ativado; não serve de
 fallback quando o provedor OIDC está indisponível. O Compose local usa um JWT
 de oito horas por padrão. HTTP e `start-dev` ficam restritos ao laboratório.
-Os clientes técnicos estão definidos no realm; o transporte app → IA ainda
-usa HMAC. Ver [10-keycloak-local.md](10-keycloak-local.md).
+O transporte app → IA tem configuração independente (D16).
+Ver [10-keycloak-local.md](10-keycloak-local.md).
+
+## D16. Client Credentials entre o app e a IA no Compose local
+
+O backend usa clientes técnicos distintos para indexação e assistência. Ele
+pede apenas o escopo da operação e guarda tokens em memória por cliente e
+escopo. Em `401` antes do SSE, tenta uma vez com um token renovado e preserva
+o corpo e a chave de idempotência; `403` não provoca renovação.
+
+A IA verifica assinatura, emissor, audiência, prazo, conta de serviço e
+escopo, e restringe cada cliente ao workspace cadastrado. O Compose usa
+`DOCS_AI_OAUTH_ENABLED` nos dois serviços. Quando ativa, essa configuração
+não aceita HMAC. O login web, `APP_SECRET` e a delegação MCP permanecem
+separados. Consulte [o roteiro de ativação](10-keycloak-local.md#5-clientes-técnicos-da-ia).

@@ -43,10 +43,10 @@ sed -i "s/^DOCS_AI_HMAC_SECRET=.*/DOCS_AI_HMAC_SECRET=$(openssl rand -hex 32)/" 
 docker compose up --build
 ```
 
-Abra `http://localhost:8080`. Para configurar o Keycloak e entrar com os dois
-usuários vinculados, siga [Keycloak na stack local](docs/tcc/10-keycloak-local.md).
-Sem `OIDC_ENABLED=true`, o Compose preserva o modo TCC legado, sem credenciais;
-não o exponha fora do laboratório.
+Abra `http://localhost:8080`. Veja [Keycloak na stack local](docs/tcc/10-keycloak-local.md)
+para ativar o login dos dois usuários vinculados e, separadamente, Client
+Credentials entre o backend e a IA. Sem `OIDC_ENABLED=true`, o Compose
+preserva o seletor legado, sem credenciais; não o exponha fora do laboratório.
 
 Teste ponta a ponta (com a stack no ar):
 

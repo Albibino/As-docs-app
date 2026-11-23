@@ -29,26 +29,31 @@ if [ "$BUILD" -eq 1 ]; then
   "$TCC_APP_DIR/scripts/tcc-build.sh"
 fi
 
-# Sem imagem local, o compose tentaria baixar "tcc-docs-app:local" de um registro.
-for image in tcc-docs-app:local tcc-docs-ai:local; do
+use_oidc="${OIDC_ENABLED-$(env_value OIDC_ENABLED)}"
+use_oauth="${DOCS_AI_OAUTH_ENABLED-$(env_value DOCS_AI_OAUTH_ENABLED)}"
+profile=() services=(db backend frontend ai)
+if [ "$use_oidc" = true ] || [ "$use_oauth" = true ]; then
+  profile=(--profile oidc)
+  services+=(keycloak)
+fi
+if [ "$SEED" -eq 1 ] && [ "$use_oidc" = true ]; then
+  fail "--seed usa o seletor legado e não funciona com OIDC ativo."
+fi
+
+for image in as-docs-frontend:local as-docs-backend:local as-docs-ai:local; do
   docker image inspect "$image" >/dev/null 2>&1 \
     || fail "Imagem $image não existe. Rode: scripts/tcc-build.sh (ou scripts/tcc-up.sh --build)."
 done
 
-info "Subindo app, IA, Postgres e Redis..."
-compose up -d --no-build
+info "Subindo: ${services[*]}..."
+compose "${profile[@]}" up -d --no-build --wait --wait-timeout 180 "${services[@]}"
 
-if ! wait_healthy 180 db app ai; then
-  fail "A stack não ficou saudável. Veja os logs acima ou: docker compose logs app ai"
-fi
-printf '\033[K'
-ok "app: $(service_status app) | ia: $(service_status ai) | postgres: $(service_status db) | redis: $(service_status redis)"
-
+app_url="${APP_URL-$(env_value APP_URL)}"
+app_url="${app_url:-http://localhost:8080}"
 if [ "$SEED" -eq 1 ]; then
   info "Criando páginas de exemplo..."
-  python3 "$TCC_APP_DIR/scripts/tcc-seed-demo.py" "$(env_value APP_URL | sed 's:/*$::' | grep . || echo http://localhost:3001)"
+  python3 "$TCC_APP_DIR/scripts/tcc-seed-demo.py" "${app_url%/}"
 fi
 
-app_url="$(env_value APP_URL)"
-ok "Pronto: ${app_url:-http://localhost:3001} (escolha \"Usuário 1\")"
-info "${C_DIM}Logs: docker compose logs -f app ai   |   Parar: scripts/tcc-down.sh${C_END}"
+ok "Pronto: $app_url"
+info "${C_DIM}Logs: docker compose logs -f backend ai   |   Parar: scripts/tcc-down.sh${C_END}"

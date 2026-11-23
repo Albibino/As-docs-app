@@ -1,10 +1,10 @@
 # Plano de adoção de OAuth 2.0 e OpenID Connect
 
-**Estado:** login OIDC local e infraestrutura do Keycloak implementados no
-app. Consulte [10-keycloak-local.md](10-keycloak-local.md) para provisionar e
-ativar. O serviço de IA continua com HMAC; o plano abaixo descreve o corte
-coordenado para Client Credentials e seus critérios de aceite, ainda pendentes.
-A primeira entrega permanece local, sem mudanças na AWS.
+**Estado:** o login OIDC e o modo Client Credentials estão implementados
+no app e na IA. Consulte [10-keycloak-local.md](10-keycloak-local.md) para
+provisionar e ativar os dois fluxos, que têm flags independentes. HMAC continua
+como modo padrão e opção de rollback explícito; não há fallback em OAuth.
+As mudanças se limitam ao Compose local, sem mudanças na AWS.
 
 ## 1. Objetivo e referência
 

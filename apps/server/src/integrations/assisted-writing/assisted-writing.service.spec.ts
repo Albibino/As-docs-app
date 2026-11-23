@@ -1,18 +1,32 @@
 import { createHash, createHmac } from 'node:crypto';
 import { AssistedWritingService } from './assisted-writing.service';
+import { AiHttpClient } from '../tcc-ai/ai-http-client.service';
+import { OidcProviderService } from '../oidc/oidc-provider.service';
 
 describe('AssistedWritingService', () => {
   const secret = 's'.repeat(32);
   const environment = {
     isDocsAiConfigured: () => true,
+    isDocsAiOAuthEnabled: () => false,
+    getDocsAiOAuthSecret: () => 'test-secret',
     getDocsAiUrl: () => 'https://ai.staging.example',
     getDocsAiHmacSecret: () => secret,
   } as any;
+  const provider = new OidcProviderService(environment);
+  beforeEach(() => {
+    jest.spyOn(provider, 'clientCredentials').mockResolvedValue({
+      access_token: 'writing-token',
+      token_type: 'bearer',
+      expires_in: 300,
+    });
+  });
+  const ai = new AiHttpClient(environment, provider);
   const service = new AssistedWritingService(
     environment,
     {} as any,
     {} as any,
     {} as any,
+    ai,
   );
   const input = {
     pageId: 'page-1',
@@ -59,25 +73,47 @@ describe('AssistedWritingService', () => {
     }
   });
 
-  it('derives tenant and signs exact forwarded body', () => {
-    const signed = service.buildSignedRequest(input, 'workspace-server-value');
-    const payload = JSON.parse(signed.body);
-    expect(payload.tenantId).toBe('workspace-server-value');
-    expect(payload.pageId).toBeUndefined();
-    const timestamp = signed.headers['x-ai-timestamp'];
-    const bodyHash = createHash('sha256').update(signed.body).digest('hex');
-    const canonical = [
-      timestamp,
-      'POST',
-      '/v1/generations/stream',
-      signed.idempotencyKey,
-      bodyHash,
-    ].join('\n');
-    const expected = createHmac('sha256', secret)
-      .update(canonical)
-      .digest('hex');
-    expect(signed.headers['x-ai-signature']).toBe(`v1=${expected}`);
-  });
+  afterEach(() => jest.restoreAllMocks());
+
+  it.each([false, true])(
+    'authenticates the exact forwarded body (OAuth=%s)',
+    async (oauth) => {
+      jest.spyOn(environment, 'isDocsAiOAuthEnabled').mockReturnValue(oauth);
+      const fetchMock = jest
+        .spyOn(global, 'fetch')
+        .mockResolvedValue(new Response('ok'));
+      await service.openStream(
+        input,
+        'workspace-server-value',
+        new AbortController().signal,
+      );
+      const [url, init] = fetchMock.mock.calls[0];
+      const headers = new Headers(init.headers);
+      const body = init.body as string;
+      expect(new URL(String(url)).pathname).toBe('/v1/generations/stream');
+      const payload = JSON.parse(body);
+      expect(payload.tenantId).toBe('workspace-server-value');
+      expect(payload.pageId).toBeUndefined();
+      if (oauth) {
+        expect(headers.get('authorization')).toBe('Bearer writing-token');
+        expect(headers.has('x-ai-signature')).toBe(false);
+        return;
+      }
+      const timestamp = headers.get('x-ai-timestamp');
+      const bodyHash = createHash('sha256').update(body).digest('hex');
+      const canonical = [
+        timestamp,
+        'POST',
+        '/v1/generations/stream',
+        headers.get('idempotency-key'),
+        bodyHash,
+      ].join('\n');
+      const expected = createHmac('sha256', secret)
+        .update(canonical)
+        .digest('hex');
+      expect(headers.get('x-ai-signature')).toBe(`v1=${expected}`);
+    },
+  );
 
   it('rejects a client-supplied page index', () => {
     expect(() =>
@@ -88,18 +124,22 @@ describe('AssistedWritingService', () => {
     ).toThrow('spacePages is not accepted from clients');
   });
 
-  it('forwards the page index without the slugId only the client needs', () => {
+  it('forwards the page index without the slugId only the client needs', async () => {
     const spacePages = [
       { pageId: 'page-2', slugId: 'slug-2', title: 'Arquitetura' },
     ];
-    const payload = JSON.parse(
-      service.buildSignedRequest(input, 'tenant', spacePages).body,
-    );
+    const fetchMock = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(new Response('ok'));
+    const signal = new AbortController().signal;
+    await service.openStream(input, 'tenant', signal, spacePages);
+    const payload = JSON.parse(fetchMock.mock.calls[0][1].body as string);
     expect(payload.spacePages).toEqual([
       { pageId: 'page-2', title: 'Arquitetura' },
     ]);
+    await service.openStream(input, 'tenant', signal);
     expect(
-      JSON.parse(service.buildSignedRequest(input, 'tenant').body).spacePages,
+      JSON.parse(fetchMock.mock.calls[1][1].body as string).spacePages,
     ).toBeUndefined();
   });
 
@@ -119,13 +159,11 @@ describe('AssistedWritingService', () => {
   });
 
   it('returns upstream 422 without retry', async () => {
-    const fetchMock = jest
-      .spyOn(global, 'fetch')
-      .mockResolvedValue(
-        new Response('{"error":{"code":"input_budget_exceeded"}}', {
-          status: 422,
-        }),
-      );
+    const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response('{"error":{"code":"input_budget_exceeded"}}', {
+        status: 422,
+      }),
+    );
     const response = await service.openStream(
       input,
       'tenant',
@@ -152,6 +190,7 @@ describe('AssistedWritingService', () => {
       pageHistoryRepo as any,
       {} as any,
       db as any,
+      ai,
     );
 
     await service.recordReferenceVersion(

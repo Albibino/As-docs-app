@@ -143,11 +143,59 @@ no parâmetro `scope` ao obter o token:
 | `docs-app-assistant` | `ai:chat:invoke`, `ai:writing:invoke` |
 
 `docs-ai` é apenas o registro da audiência. Nenhum cliente ganha escopo de
-embeddings por padrão. O app e a IA só passam a usar esses clientes no corte
-coordenado: obtenha seus segredos nas respectivas abas **Credentials** para o
-backend naquela etapa, nunca para a IA ou para o navegador. Nesta fundação a
-configuração HMAC existente do Compose permanece em vigor. A credencial MCP
-continua separada.
+embeddings. Para preparar o corte coordenado no Compose local:
+
+1. No console do Keycloak, selecione o realm `as-docs` e abra **Clients**.
+   Nas abas **Credentials** de `docs-app-indexer` e `docs-app-assistant`,
+   obtenha seus segredos e configure-os no arquivo de ambiente local como
+   `OIDC_CLIENT_SECRET_INDEXER` e `OIDC_CLIENT_SECRET_ASSISTANT`. A IA e o
+   navegador não recebem essas credenciais.
+2. Confira o ID da conta de serviço de cada cliente na aba **Service Account
+   Roles** (ou pelo endpoint administrativo
+   `GET /admin/realms/as-docs/clients/{client-uuid}/service-account-user`, campo
+   `id`). Use esse ID como `subject`, não o ID do cliente nem seu nome. Não
+   copie tokens, segredos ou cabeçalhos de autenticação para logs ou para o Git.
+3. Pegue o ID do workspace do app após as migrações e o seed:
+
+   ```bash
+   docker compose --env-file "$env_file" exec -T db psql -XAt -U asdocs -d asdocs \
+     -c 'SELECT id FROM workspaces;'
+   ```
+
+4. Autorize um único workspace por cliente no mesmo arquivo local. Exemplo
+   ilustrativo; substitua os três marcadores por seus UUIDs reais:
+
+   ```dotenv
+   AI_OAUTH_CLIENTS_JSON='{"docs-app-indexer":{"subject":"<sub-indexador>","tenantId":"<workspace-id>"},"docs-app-assistant":{"subject":"<sub-assistente>","tenantId":"<workspace-id>"}}'
+   AI_OIDC_JWKS_URL=http://keycloak:8080/realms/as-docs/protocol/openid-connect/certs
+   DOCS_AI_OAUTH_ENABLED=true
+   ```
+
+A flag é compartilhada pelo Compose entre o backend e a IA para evitar modos
+incompatíveis. Na ativação, retire `DOCS_AI_HMAC_SECRET` do arquivo local.
+Mantenha `APP_SECRET`, que protege a sessão local e a credencial MCP,
+independentemente do transporte. Com o Keycloak saudável, recrie os dois
+serviços juntos para que nenhuma instância antiga continue falando HMAC:
+
+```bash
+docker compose --env-file "$env_file" --profile oidc config --quiet
+docker compose --env-file "$env_file" --profile oidc up -d --build --wait backend ai
+docker compose --env-file "$env_file" --profile oidc exec -T ai \
+  python -c 'from urllib.request import urlopen; print(urlopen("http://127.0.0.1:8000/health/ready", timeout=5).status)'
+```
+
+O `200` confirma a configuração e os serviços locais da IA, mas não confirma
+emissão ou validação de tokens. Para validar o corte, indexe uma página e
+faça uma pergunta sobre ela; para exercitar a credencial MCP separada, atualize
+a página e pergunte antes que a nova versão seja indexada.
+
+Para voltar ao modo legado, escolha explicitamente `DOCS_AI_OAUTH_ENABLED=false`
+e restaure a configuração HMAC dos dois lados. Não desligue `OIDC_ENABLED` para
+fazer esse rollback; o login de usuários é independente. A concessão de HTTP
+restringe-se ao laboratório local e não se aplica aos manifests AWS. Em
+OAuth, o backend só envia Bearer por HTTP a `http://ai:8000` com issuer
+HTTP em `localhost`. O backchannel HTTP do Keycloak também exige esse issuer
+local, com destino interno `http://keycloak:8080` ou de loopback.
 
 ## Verificações da fundação
 
@@ -178,4 +226,20 @@ Valide também a página `/login` no navegador pela porta do frontend. O
 endpoint `/api/auth/oidc/status` devolve `data.enabled` no envelope padrão do
 backend; uma resposta HTTP 200 sozinha não comprova que o botão de login
 aparece. Os testes da interface no Vitest usam esse mesmo envelope. A
-colaboração simultânea e o fluxo completo da IA ficam fora desta verificação.
+colaboração simultânea fica fora desta verificação.
+
+## Verificação do Client Credentials
+
+Em um projeto Compose descartável, o backend e a IA foram reconstruídos e
+executados com OAuth ativo, sem segredo HMAC e sem chave OpenAI. Tokens reais
+emitidos pelo Keycloak deram acesso à consulta de estado do índice. A IA
+retornou `401` para cabeçalhos HMAC sem Bearer e `403` para cliente, escopo ou
+workspace sem permissão e para embeddings. O `scripts/tcc-e2e.py` passou com
+indexação das duas versões, chat via índice e leitura MCP da versão mais nova
+quando o índice estava defasado.
+
+O roteiro usou o seletor legado apenas no projeto isolado, para verificar o
+transporte técnico sem mudar o fluxo de login já verificado separadamente.
+Escrita assistida passou em testes automatizados com um provedor substituto;
+este teste ponta a ponta não usou o modelo real para gerar, aplicar ou desfazer
+uma proposta. A stack existente não foi reiniciada nem migrada.
