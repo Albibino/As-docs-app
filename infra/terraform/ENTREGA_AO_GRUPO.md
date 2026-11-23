@@ -1,10 +1,14 @@
-# Entrega da rede ao grupo
+# Entrega da rede e do EKS ao grupo
 
 ## Estado confirmado
 
 Em 22/11/2026, o usuário aplicou o plano no Learner Lab e criou 22 recursos. O
-plano seguinte retornou `No changes`. A configuração passou em `validate` e em
-3 testes simulados. A implantação final continuará nesta mesma conta AWS.
+plano seguinte retornou `No changes`. O backend S3 foi migrado e verificado.
+Na mesma conta e no mesmo state, o apply EKS criou mais 13 recursos, sem alterar
+ou excluir os anteriores. Validate e seis testes simulados passaram em execuções
+da rede e do EKS. A conferência confirmou três nós `Ready` sem IP público,
+pods do sistema `Running` e plano `No changes`. A implantação final continuará
+nesta mesma conta AWS.
 
 | Item | Valor |
 |---|---|
@@ -17,9 +21,15 @@ plano seguinte retornou `No changes`. A configuração passou em `validate` e em
 | Sub-rede privada B | `subnet-063bcd96ac81fc44d` — `10.0.11.0/24`, `us-east-1b` |
 | SG do futuro ALB | `sg-09949bead0e930a24` |
 | SG do futuro frontend | `sg-0a5118ad08038a7e8` |
+| Cluster EKS | `as-docs-eks` |
+| Node group | `as-docs-private-storage` — desejado/minimo/maximo 3; LabRole existente |
+| SG do cluster | `sg-0a3d3f64bea7b6b6e` |
+| NAT A | `nat-0581b6cf974af20ee` |
+| NAT B | `nat-0ca37920f417edc2e` |
 
 Os grupos de segurança estão preparados; ALB e EC2 ainda não foram criados.
-As sub-redes privadas têm roteamento local. A saída NAT será uma próxima etapa.
+As sub-redes privadas têm saída pelo NAT da mesma zona. Os nós não recebem IP
+público. Nenhuma instância frontend foi criada por esta etapa.
 
 ## Continuidade
 
@@ -50,5 +60,11 @@ O responsável pelo laboratório pode aplicar as alterações revisadas pelo gru
 - William confirmou três nós privados do EKS. Os serviços serão executados em
   containers nesse cluster; não foi definida dedicação de um nó a cada serviço.
 
-EKS, nós, NAT, banco, ALB, WAF, frontend e deploy da aplicação são etapas seguintes.
+EKS, node group, NATs, add-ons basicos, CSI e RDS foram aplicados. A prova real
+de volume temporario passou; o plano final da base retornou No changes em
+23/11/2026. Base: 36 recursos; banco: cinco em outro state. O grupo antigo foi
+removido apos criar os substitutos. NLB, ALB/WAF, EC2 frontend e deploy continuam
+pendentes. Os manifests do deploy criarao os PVCs reais de 5 GiB e 10 GiB.
+Entrega do RDS em ../database/ENTREGA_AO_MUCI.md; resultado da etapa 05 em
+evidencias/2026-11-23-conclusao-volumes.md.
 Backups e recuperação de dados ainda serão necessários para o requisito de DR.

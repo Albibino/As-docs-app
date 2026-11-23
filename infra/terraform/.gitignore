@@ -12,3 +12,6 @@ override.tf.json
 .env
 *.pem
 *.ppk
+eks-acesso.auto.tfvars
+eks-storage.auto.tfvars
+__pycache__/

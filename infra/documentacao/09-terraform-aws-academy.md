@@ -13,8 +13,9 @@ O provider limita a execução à conta confirmada pelo usuário; as variáveis 
 somente as duas regiões permitidas pelo laboratório. Os ARNs das funções existentes
 do cluster e dos nós EKS estão em `terraform.tfvars`. Nenhuma função IAM é criada.
 
-NAT, computação, RDS, ALB, WAF e deploy são etapas seguintes. As sub-redes privadas
-têm apenas rotas locais até a configuração da saída NAT. O state foi migrado
+EKS e NAT foram acrescentados pela etapa 03, já aplicada com 13 adições, nenhuma
+alteração e nenhuma exclusão. RDS, persistência, frontends, balanceadores, WAF e
+deploy continuam pendentes. O state da rede foi migrado
 para S3 e verificado com os 22 recursos gerenciados e um novo plano sem diferenças.
 O usuário confirmou a continuidade na mesma conta AWS.
 
@@ -26,8 +27,9 @@ confirmou PostgreSQL 18, Redis 8 e Redis com Vector Sets para a IA. Os manifests
 compartilham uma instância Redis, usando DB 1 para o app e DB 0 para a IA.
 
 William confirmou que as três máquinas privadas serão três nós do EKS, alinhados
-aos manifests recebidos. As políticas das funções existentes ainda devem ser
-conferidas antes de provisionar o cluster. Pedro integrará o Keycloak e Micdu
+aos manifests recebidos. As políticas das funções existentes foram conferidas e
+o cluster e node group foram criados. A conferência confirmou três nós Ready sem
+IP público e plano No changes. Pedro integrará o Keycloak e Micdu
 poderá ajustar CI/CD/SonarQube. Backups e testes de recuperação dos dados ainda
 completarão a demonstração de DR.
 
@@ -44,8 +46,8 @@ durante a preparação local. Ver `infra/terraform/VERIFICACAO.md`.
 O `init` real no laboratório falhou ao extrair o provider por falta de espaço no
 diretório pessoal. O diagnóstico mostrou espaço disponível em `/var/tmp`.
 `cloudshell-env.sh` configura `TF_DATA_DIR` nessa área para dados regeneráveis;
-o `init` também usa `TMPDIR=/var/tmp`. Código e state permanecem no diretório
-pessoal. A variável deve ser carregada em cada nova sessão, repetindo o `init`
+o `init` também usa `TMPDIR=/var/tmp`. Código e backups permanecem no diretório
+pessoal; o state ativo fica no S3. A variável deve ser carregada em cada nova sessão, repetindo o `init`
 quando o ambiente temporário for reciclado.
 
 ## Resultado no laboratório em 22/11/2026
@@ -65,3 +67,9 @@ nenhuma alteração e nenhuma exclusão. Um novo plano retornou `No changes`.
 Evidência em `infra/terraform/evidencias/2026-11-22-aplicacao-e-convergencia.txt`.
 A VPC criada é `vpc-04354398b0920234a`, conta `967931808920`, `us-east-1`.
 Os IDs e a orientação de continuidade estão em `infra/terraform/ENTREGA_AO_GRUPO.md`.
+
+Depois da migração S3 verificada, o apply EKS criou outros 13 recursos, elevando
+o total gerenciado para 35. Validate e os testes simulados do EKS passaram no
+CloudShell. A conferência confirmou três nós Ready sem IP público, pods do sistema
+Running e plano posterior No changes. Ver
+`11-eks-academy.md` e `infra/terraform/evidencias/2026-11-22-aplicacao-eks.md`.

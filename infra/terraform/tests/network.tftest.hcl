@@ -4,6 +4,24 @@ mock_provider "aws" {
       names = ["us-east-1a", "us-east-1b"]
     }
   }
+
+  mock_data "aws_eks_addon_version" {
+    defaults = {
+      version = "v1.0.0-eksbuild.1"
+    }
+  }
+
+  mock_resource "aws_launch_template" {
+    defaults = {
+      id             = "lt-0123456789abcdef0"
+      latest_version = 1
+    }
+  }
+}
+
+variables {
+  eks_storage_enabled  = false
+  eks_api_access_cidrs = ["203.0.113.10/32"]
 }
 
 run "rede_sem_acesso_direto_ao_frontend" {

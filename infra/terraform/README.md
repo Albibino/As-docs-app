@@ -1,226 +1,96 @@
-# As-docs — Terraform, etapa 01: rede
+# As-docs — infraestrutura Terraform no AWS Academy
 
-Primeiro bloco da infraestrutura do trabalho de Auditoria e Segurança de Sistemas,
-para receber As-docs-app e As-docs-ai no AWS Academy Learner Lab.
+**Etapa 05 aplicada e verificada em 23/11/2026:** grupo as-docs-private-storage
+com tres nos privados e LabRole existente, CSI EBS e StorageClass gp3. O teste
+real confirmou escrita, leitura apos recriar workload e bloqueio IMDS em regime
+estavel. Objetos temporarios removidos; plano final No changes. Esta configuracao
+tem 36 recursos gerenciados; o banco em `../database` tem outros cinco em state
+separado. Veja [ETAPA_05_VOLUMES.md](ETAPA_05_VOLUMES.md).
 
-Em 22/11/2026, o usuário criou os 22 recursos desta etapa e confirmou um plano
-posterior sem diferenças. Resultados e evidências: `VERIFICACAO.md`.
-IDs dos recursos e orientação para o grupo: `ENTREGA_AO_GRUPO.md`.
+A rede já foi aplicada na conta `967931808920`, região `us-east-1`: 22 recursos,
+VPC `vpc-04354398b0920234a` e plano posterior `No changes`. O state foi migrado para
+S3 e verificado novamente com os 22 recursos gerenciados e plano sem diferenças.
 
-O state foi migrado para S3 e verificado com `init`, os 22 recursos gerenciados
-na lista e um novo plano sem diferenças. `backend.tf` registra o backend remoto;
-quem executar deve usar uma sessão AWS autorizada na conta do laboratório.
+A etapa 03 também foi aplicada: EKS 1.37, grupo configurado com três nós privados,
+NAT por zona, logs e add-ons de rede/DNS. **Validate e os testes simulados
+passaram; o apply criou 13 recursos, sem alterações ou exclusões.** O total
+declarado é de 35 recursos gerenciados. A conferência confirmou três nós `Ready`
+sem IP público, pods do sistema `Running` e plano posterior `No changes`.
+O roteiro está em
+[ETAPA_03_EKS.md](ETAPA_03_EKS.md).
 
-## Entrega desta etapa
+## Estado e escopo
 
-| Recurso | Finalidade |
+| Componente | Situação |
 |---|---|
-| 1 VPC com DNS habilitado | Rede do projeto. |
-| 2 sub-redes públicas em zonas diferentes | Receber ALB e EC2 do frontend. |
-| 2 sub-redes privadas nas mesmas zonas | Receber EKS, banco e balanceador interno. |
-| Internet Gateway e rota pública | Saída das futuras instâncias públicas para a internet. |
-| Tabelas de rotas privadas | Base para adicionar NAT na etapa EKS. |
-| Security Groups do ALB e do frontend | HTTP no frontend somente a partir do balanceador. |
-| Outputs | IDs e CIDRs para integrar as próximas etapas. |
+| VPC, quatro sub-redes em duas zonas, IGW, tabelas/rota pública e SGs | Aplicados e verificados: 22 recursos Terraform. |
+| Backend S3 com criptografia e bloqueio nativo | Migração concluída e verificada. |
+| EKS 1.37, três nós privados e NAT por zona | Apply concluído; três nós Ready sem IP público e plano No changes confirmados. |
+| Add-ons VPC CNI, kube-proxy e CoreDNS | Criados; NetworkPolicy habilitado no CNI. |
+| RDS | Aplicado em ../database: cinco recursos, plano No changes. |
+| Persistencia/CSI | Aplicada e verificada em volume temporario; PVCs reais entram no deploy. |
+| NLB, EC2 frontend, ALB/WAF e deploy | Proximas etapas de integracao. |
+| Backups e restauração de dados | Necessários para concluir o plano de DR. |
 
-O código não cria usuários, funções ou políticas IAM. Os dois ARNs recebidos do
-Academy ficam reservados para a próxima etapa. Ainda será preciso consultar suas
-políticas antes de configurar cluster, nós e complementos.
+Nenhuma função ou política IAM é criada por este código. `terraform.tfvars` tem
+os IDs e ARNs existentes, sem credenciais. As consultas do usuário confirmaram as
+politicas basicas do cluster e dos nos. O CSI usa a LabRole do laboratorio,
+com as limitacoes de isolamento documentadas na etapa 05. A integracao do
+balanceador interno continua pendente.
 
-Esta entrega é somente a rede. ALB, WAF, EC2, EKS, NLB, NAT, RDS, Redis, imagens e
-deploy dos containers entram nas próximas etapas. As sub-redes privadas têm
-somente rotas locais nesta versão: workloads privados que baixam imagens ou
-acessam a OpenAI precisarão da saída NAT e suas rotas antes do deploy.
+## Retomar no CloudShell
 
-## Parâmetros
+A instalação de sistema pode desaparecer ao reciclar o CloudShell. O usuário
+preservou Terraform em `$HOME/.local/bin`. Se ele estiver ausente, use a instalação
+oficial HashiCorp para Amazon Linux e copie o executável para esse diretório.
 
-`terraform.tfvars` contém a conta e os dois ARNs informados pelo usuário. São
-identificadores de recursos, não credenciais. A autenticação utiliza a sessão
-ativa do AWS Academy, sem armazenar chaves de acesso no projeto.
-
-A região usada é `us-east-1`, permitida pelo Readme do laboratório. O usuário
-confirmou que a implantação final continuará na conta `967931808920`, onde a rede
-já foi criada. O provider recusa uma conta diferente de `expected_account_id`.
-
-| Faixa padrão | Uso |
-|---|---|
-| `10.0.0.0/16` | VPC |
-| `10.0.0.0/24` e `10.0.1.0/24` | Sub-redes públicas |
-| `10.0.10.0/24` e `10.0.11.0/24` | Sub-redes privadas |
-
-O código escolhe duas zonas normais disponíveis na conta/região. Se alterar o
-CIDR, ajuste também `loadBalancerSourceRanges` e `ipBlock` em
-`deploy/k8s/22-backend.yaml` do app, que ainda usa as faixas originais.
-
-## 1. Instalar o Terraform
-
-Inicie o Learner Lab, entre no console AWS e abra o CloudShell. O CLI AWS já usa a
-autenticação dessa sessão. Para o Amazon Linux 2023, use o repositório HashiCorp:
+O provider AWS é grande para o armazenamento pessoal de 1 GB. Carregue o helper
+para guardar apenas dados regeneráveis em `/var/tmp`; código e backups locais
+ficam no diretório pessoal, e o state ativo fica no S3.
 
 ```bash
-sudo dnf install -y dnf-plugins-core shadow-utils
-sudo dnf config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
-sudo dnf install -y terraform
-mkdir -p "$HOME/.local/bin"
-if [ "$(command -v terraform)" != "$HOME/.local/bin/terraform" ]; then
-  cp "$(command -v terraform)" "$HOME/.local/bin/terraform"
-fi
-export PATH="$HOME/.local/bin:$PATH"
-terraform version
-```
-
-Se a instalação falhar, preserve a mensagem para identificar o ajuste.
-
-A cópia em `$HOME/.local/bin` preserva o executável entre sessões. As mudanças do
-sistema feitas por `dnf` ficam fora do diretório pessoal e podem desaparecer ao
-reciclar o ambiente. Nas próximas sessões, carregue `cloudshell-env.sh` na pasta
-do projeto para configurar `PATH` e `TF_DATA_DIR` antes dos comandos Terraform.
-
-## 2. Enviar e extrair
-
-As instruções de primeira implantação abaixo ficam como referência. Nesta conta,
-a rede já existe: continue da pasta que contém seu state. O ZIP atualizado traz
-código e evidências e não inclui o state da infraestrutura criada.
-
-No CloudShell, use **Actions > Upload file** para enviar
-`As_docs_Terraform_Etapa_01.zip`.
-
-```bash
-unzip As_docs_Terraform_Etapa_01.zip
-cd as-docs-terraform-etapa-01
-```
-
-Para incorporar ao repositório do grupo, copie a pasta para `infra/terraform` do
-As-docs-app. Preserve o state do ambiente em que o código tiver sido aplicado.
-
-## 3. Validar e planejar
-
-O CloudShell oferece 1 GB de armazenamento persistente no diretório pessoal.
-O provider AWS 6.73.0 tem aproximadamente 800 MB depois de descompactado; o
-download e a extração podem esgotar esse espaço. Use a área temporária para os
-dados regeneráveis, mantendo código e state na pasta atual do projeto.
-
-Confira o espaço disponível antes da inicialização:
-
-```bash
-df -h "$HOME" /tmp /var/tmp
-```
-
-Na sessão informada pelo usuário, `/var/tmp` tinha 9,2 GB livres, enquanto o
-diretório pessoal tinha 145 MB. Carregue a configuração e inicialize assim:
-
-```bash
+cd "$HOME/as-docs-terraform-etapa-01"
 source ./cloudshell-env.sh
+bash ./preparar-eks.sh
 TMPDIR=/var/tmp terraform init
 terraform fmt -check -recursive
 terraform validate
 terraform test
-terraform plan -out=rede.tfplan
-terraform show -no-color rede.tfplan
+terraform plan -out=eks.tfplan
 ```
 
-O `TF_DATA_DIR` aponta o diretório de dados regeneráveis para `/var/tmp`, e o
-`TMPDIR` nesse comando posiciona ali os arquivos temporários da instalação.
-Carregue `cloudshell-env.sh` novamente a cada nova sessão antes dos comandos
-Terraform. Se o CloudShell remover a área temporária, repita o `init`: os
-providers podem ser baixados novamente. O state ativo fica no backend S3;
-preserve as cópias locais anteriores como backup.
+`preparar-eks.sh` identifica o IP público atual do CloudShell e grava um `/32`
+no arquivo local `eks-acesso.auto.tfvars`, ignorado pelo Git. O endpoint privado
+atende os nós; o endpoint público da API é restrito aos operadores configurados.
+A rede, o EKS e o CSI ja estao no state remoto e foram verificados apos a etapa
+05. A retomada com as mesmas variaveis deve produzir No changes.
+Se o IP do CloudShell
+mudou, analise a atualização da lista de acesso da API antes de aplicar.
 
-Se sua pasta ainda for a primeira versão do pacote, que não incluía esse script,
-configure manualmente:
+## Backend e colaboração
 
-```bash
-export PATH="$HOME/.local/bin:$PATH"
-export TF_DATA_DIR="/var/tmp/as-docs-terraform-data-${UID}"
-mkdir -p "$TF_DATA_DIR"
-TMPDIR=/var/tmp terraform init
-```
+`backend.tf` aponta para o bucket `as-docs-tfstate-967931808920-us-east-1`, chave
+`as-docs/terraform.tfstate`, com `use_lockfile = true`. Ele pode ser versionado,
+junto com `.terraform.lock.hcl`. O acesso GitHub não concede acesso AWS: o executor
+precisa de sessão autorizada na mesma conta e permissões S3 para o state e o lock.
 
-### Se o init anterior falhou com falta de espaço
+States, backups, planos, providers, credenciais e o arquivo local de IP ficam
+fora do Git. Não mova o projeto inteiro para `/tmp` ou `/var/tmp`. Não reaplique
+`rede.tfplan` nem repita o helper inicial de migração, que já foi concluída.
 
-Dentro desta pasta de projeto, remova apenas a instalação parcial dos providers:
+Para a inclusão no As-docs-app, esta pasta corresponde a `infra/terraform`.
+O apoio ao state está em `infra/state-backend`. William confirmou três nós EKS;
+Kubernetes distribui os serviços pelos nós sem dedicação obrigatória por serviço.
 
-```bash
-rm -rf -- .terraform/providers
-source ./cloudshell-env.sh
-TMPDIR=/var/tmp terraform init
-```
+## Evidências e referências
 
-`providers` é uma pasta de dependências reinstaláveis. Preserve o
-`terraform.tfstate`, seu backup, os arquivos `.tf` e o `.terraform.lock.hcl`.
-
-`terraform test` usa um provider simulado: verifica exposição do frontend, IPs
-privados, distribuição em duas zonas e rejeição de região/ARNs incompatíveis.
-Esses testes não fazem chamadas à AWS. O `plan` usa o provider real, confere a
-conta e lê as zonas disponíveis para planejar os recursos.
-
-Em uma primeira execução, o plano deve propor somente a criação dos recursos de
-rede descritos acima. A consulta de funções já ter funcionado não prova permissão
-para todas as operações futuras do EKS ou de seus complementos.
-
-## 4. Aplicar a rede
-
-Depois de conferir o destino e o plano:
-
-```bash
-terraform apply rede.tfplan
-terraform output
-```
-
-Não use `-auto-approve`. Se o plano salvo ficar desatualizado, gere outro plano.
-Um erro `AccessDenied` deve ser analisado a partir da operação negada, respeitando
-as permissões do laboratório.
-
-## Estado e colaboração
-
-O state ativo está no S3 configurado em `backend.tf`. Ele vincula o código aos
-recursos existentes. Inclua `backend.tf` e `.terraform.lock.hcl` no Git; eles
-guardam a configuração do backend e a versão do provider. States, backups,
-`.terraform/` e planos ficam fora do Git, conforme o `.gitignore`.
-
-O armazenamento temporário serve somente aos dados de trabalho e dependências;
-não mova o projeto inteiro nem o state para `/tmp` ou `/var/tmp`.
-
-O backend S3 compartilhado usa `use_lockfile = true`. O acesso ao GitHub não
-concede acesso AWS: cada executor precisa de uma sessão autorizada e das
-permissões de acesso ao state e ao lock. Coordenem as alterações da configuração
-e mantenham os executores usando esse mesmo backend.
-
-Guarde como evidências o plano, os outputs, as quatro sub-redes com suas zonas e
-as regras dos Security Groups. Depois, será preciso testar funcionamento da
-aplicação e recuperação de dados para completar a avaliação.
-
-Para remover exclusivamente os recursos gerenciados por este state, confira o
-plano de destruição antes da execução:
-
-```bash
-terraform plan -destroy
-terraform destroy
-```
-
-Dimensione os custos das próximas etapas antes de criar EKS, RDS, NAT e
-balanceadores. Encerrar a sessão do laboratório não garante que todos esses
-recursos parem de consumir seu orçamento.
-
-## Próximas etapas
-
-- Usar o backend S3 já migrado para continuar a infraestrutura existente.
-- Preparar o EKS com três nós privados, conforme confirmação de William.
-- Conferir políticas e relações de confiança das funções existentes do EKS.
-- Fechar a configuração de PostgreSQL 18 e Redis 8; a IA usa Vector Sets.
-  Os manifests compartilham uma instância Redis. Não foi identificada integração
-  DynamoDB nos projetos recebidos.
-- Configurar NAT, EKS, nós e complementos necessários aos manifests: balanceador
-  interno, armazenamento persistente e políticas de rede.
-- Integrar RDS, EC2, ALB, WAF, domínio/certificado e as imagens do CI/CD.
-- Definir backups e procedimento de recuperação para demonstrar DR.
-
-## Referências
-
-- https://developer.hashicorp.com/terraform/install
-- https://registry.terraform.io/providers/hashicorp/aws/latest/docs
-- https://docs.aws.amazon.com/cloudshell/latest/userguide/welcome.html
-- https://developer.hashicorp.com/terraform/language/tests/mocking
-
-O Readme do laboratório enviado pelo usuário é a referência para as restrições
-específicas de sua conta.
+- [VERIFICACAO.md](VERIFICACAO.md): validação, aplicação da rede e migração S3.
+- [VERIFICACAO_EKS.md](VERIFICACAO_EKS.md): alcance da verificação desta preparação.
+- [ENTREGA_AO_GRUPO.md](ENTREGA_AO_GRUPO.md): IDs e continuidade da infraestrutura.
+- [Etapas e políticas confirmadas](evidencias/2026-11-22-pre-requisitos-eks.md).
+- [Apply EKS concluído](evidencias/2026-11-22-aplicacao-eks.md).
+- [Conferência dos nós e convergência](evidencias/2026-11-22-conferencia-eks.txt).
+- [Backend S3](https://developer.hashicorp.com/terraform/language/backend/s3).
+- [Instalação Terraform](https://developer.hashicorp.com/terraform/install).
+- Readme do Learner Lab fornecido pelo usuário: restrições de conta/região,
+  tamanhos de instância, armazenamento e permissões.
