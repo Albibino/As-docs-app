@@ -8,7 +8,7 @@ import secrets
 import subprocess
 import sys
 
-ACCOUNT = "967931808920"
+ACCOUNT = "362749056012"
 REGION = "us-east-1"
 IDENTIFIER = "as-docs-postgres"
 PREFERRED = (

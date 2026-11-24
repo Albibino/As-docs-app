@@ -27,7 +27,7 @@ resource "aws_db_subnet_group" "private" {
   lifecycle {
     precondition {
       condition = (
-        data.terraform_remote_state.network.outputs.vpc_id == "vpc-04354398b0920234a" &&
+        data.terraform_remote_state.network.outputs.vpc_id == "vpc-0a79932ef5165619e" &&
         length(data.terraform_remote_state.network.outputs.private_subnets) == 2
       )
       error_message = "O state consultado precisa corresponder a VPC e as duas sub-redes privadas ja verificadas."

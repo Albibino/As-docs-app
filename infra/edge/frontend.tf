@@ -30,11 +30,11 @@ resource "aws_instance" "frontend" {
 
   lifecycle {
     precondition {
-      condition     = local.base.vpc_id == "vpc-04354398b0920234a" && length(local.base.public_subnets) == 2
+      condition     = local.base.vpc_id == "vpc-0a79932ef5165619e" && length(local.base.public_subnets) == 2
       error_message = "O state da rede precisa ser o da VPC existente, com duas sub-redes publicas."
     }
     precondition {
-      condition     = data.aws_iam_instance_profile.frontend.role_arn == "arn:aws:iam::967931808920:role/LabRole"
+      condition     = data.aws_iam_instance_profile.frontend.role_arn == "arn:aws:iam::362749056012:role/LabRole"
       error_message = "O perfil existente deve usar a LabRole confirmada nesta conta."
     }
   }

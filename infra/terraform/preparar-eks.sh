@@ -9,7 +9,7 @@ if [[ ! -f backend.tf || ! -f eks.tf || ! -f terraform.tfvars ]]; then
 fi
 
 AS_DOCS_ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
-if [[ "$AS_DOCS_ACCOUNT" != "967931808920" ]]; then
+if [[ "$AS_DOCS_ACCOUNT" != "362749056012" ]]; then
   printf '%s\n' 'A sessão AWS não corresponde à conta confirmada para esta infraestrutura.' >&2
   exit 1
 fi

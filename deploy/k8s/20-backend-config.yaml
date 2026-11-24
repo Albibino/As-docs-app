@@ -7,7 +7,7 @@ metadata:
   name: as-docs-backend-config
   namespace: as-docs
 data:
-  APP_URL: "https://docs.exemplo.com"          # domínio público do ALB
+  APP_URL: "https://www.asdocs.abrdns.com"          # domínio público do ALB
   PORT: "3000"
   JWT_TOKEN_EXPIRES_IN: "30d"
   REDIS_URL: "redis://redis.as-docs.svc.cluster.local:6379/1"

@@ -32,7 +32,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: backend
-          image: ghcr.io/albibino/as-docs-backend:latest
+          image: 362749056012.dkr.ecr.us-east-1.amazonaws.com/as-docs-backend:latest
           ports:
             - containerPort: 3000
           envFrom:
@@ -62,34 +62,25 @@ spec:
           persistentVolumeClaim:
             claimName: as-docs-backend-storage
 ---
-# Um único Service:
-#  - dentro do cluster: as-docs-backend.as-docs.svc.cluster.local:3000 (usado pela IA no MCP)
-#  - fora do cluster: NLB INTERNO (sem IP público), usado pelo Nginx das EC2 públicas.
-# Requer o AWS Load Balancer Controller. O DNS do NLB vai em BACKEND_URL do frontend:
-#   kubectl -n as-docs get svc as-docs-backend -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+# Entregar ao Muci: substituir SOMENTE o Service em deploy/k8s/22-backend.yaml
+# por este bloco. PVC/Deployment/NetworkPolicy e o nome DNS interno sao mantidos.
+# Nao aplicar depois o Service antigo type: LoadBalancer, pois ele reverteria
+# este contrato e tentaria criar outro balanceador pelo controller ausente.
 apiVersion: v1
 kind: Service
 metadata:
   name: as-docs-backend
   namespace: as-docs
-  annotations:
-    service.beta.kubernetes.io/aws-load-balancer-type: "external"
-    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
-    service.beta.kubernetes.io/aws-load-balancer-scheme: "internal"
-    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
-    # Restrinja ao SG das EC2 do frontend:
-    # service.beta.kubernetes.io/aws-load-balancer-security-groups: "sg-xxxxxxxx"
 spec:
-  type: LoadBalancer
-  # CIDRs das subnets PÚBLICAS (EC2 do frontend). Ajuste para a sua VPC.
-  loadBalancerSourceRanges:
-    - 10.0.0.0/24
-    - 10.0.1.0/24
-  selector: { app: as-docs-backend }
+  type: NodePort
+  externalTrafficPolicy: Cluster
+  selector:
+    app: as-docs-backend
   ports:
     - name: http
       port: 3000
       targetPort: 3000
+      nodePort: 30300
 ---
 # Entrada no backend: IA (MCP) e o tráfego vindo do NLB (IPs da VPC).
 # Exige NetworkPolicy habilitado no VPC CNI (enableNetworkPolicy=true).

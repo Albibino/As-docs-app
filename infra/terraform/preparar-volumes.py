@@ -16,7 +16,7 @@ def main():
     if not Path("storage.tf").is_file():
         raise SystemExit("Entre na pasta da infraestrutura atualizada.")
     identity = read("aws", "sts", "get-caller-identity", "--output", "json", "--no-cli-pager")
-    if identity["Account"] != "967931808920":
+    if identity["Account"] != "362749056012":
         raise SystemExit("Conta diferente da autorizada.")
     pods = read("kubectl", "get", "pods", "-A", "-o", "json")["items"]
     non_system = [p for p in pods if p["metadata"]["namespace"] not in

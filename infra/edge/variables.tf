@@ -21,7 +21,7 @@ variable "acm_certificate_arn" {
   validation {
     condition = (
       (var.acm_certificate_arn == "" && var.public_hostname == "") ||
-      (var.public_hostname != "" && can(regex("^arn:aws:acm:us-east-1:967931808920:certificate/[0-9a-f-]+$", var.acm_certificate_arn)))
+      (var.public_hostname != "" && can(regex("^arn:aws:acm:us-east-1:362749056012:certificate/[0-9a-f-]+$", var.acm_certificate_arn)))
     )
     error_message = "Configure dominio e certificado juntos, na conta e regiao corretas; ambos vazios permitem somente HTTP temporario."
   }

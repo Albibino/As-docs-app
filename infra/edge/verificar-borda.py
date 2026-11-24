@@ -34,13 +34,13 @@ def main():
     args = parser.parse_args()
     if not Path('waf.tf').is_file():
         raise RuntimeError('Entre na pasta da etapa 06.')
-    if aws('sts', 'get-caller-identity')['Account'] != '967931808920':
+    if aws('sts', 'get-caller-identity')['Account'] != '362749056012':
         raise RuntimeError('Conta diferente da autorizada.')
     outputs = {key: item['value'] for key, item in read('terraform', 'output', '-json').items()}
     alb = aws('elbv2', 'describe-load-balancers', '--load-balancer-arns', outputs['public_alb']['arn'])['LoadBalancers'][0]
     nlb = aws('elbv2', 'describe-load-balancers', '--names', 'as-docs-internal')['LoadBalancers'][0]
     if alb['Scheme'] != 'internet-facing' or nlb['Scheme'] != 'internal' or any(
-            lb['VpcId'] != 'vpc-04354398b0920234a' or lb['State']['Code'] != 'active' for lb in [alb, nlb]):
+            lb['VpcId'] != 'vpc-0a79932ef5165619e' or lb['State']['Code'] != 'active' for lb in [alb, nlb]):
         raise RuntimeError('Scheme, VPC ou estado dos balanceadores diferente do esperado.')
     ids = [item['id'] for item in outputs['frontend_instances'].values()]
     instances = [i for r in aws('ec2', 'describe-instances', '--instance-ids', *ids)['Reservations'] for i in r['Instances']]

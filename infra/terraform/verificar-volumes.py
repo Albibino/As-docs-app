@@ -114,10 +114,10 @@ def delete_job(name):
 
 def main():
     account = json.loads(command('aws', 'sts', 'get-caller-identity', '--output', 'json', '--no-cli-pager'))
-    if account['Account'] != '967931808920':
+    if account['Account'] != '362749056012':
         raise RuntimeError('Conta AWS diferente da autorizada.')
     context = command('kubectl', 'config', 'current-context').strip()
-    if context != 'arn:aws:eks:us-east-1:967931808920:cluster/as-docs-eks':
+    if context != 'arn:aws:eks:us-east-1:362749056012:cluster/as-docs-eks':
         raise RuntimeError('Use o contexto do cluster as-docs-eks antes do teste.')
     nodes = json.loads(command('kubectl', 'get', 'nodes', '-o', 'json'))['items']
     if len(nodes) != 3 or not all(any(c['type'] == 'Ready' and c['status'] == 'True'

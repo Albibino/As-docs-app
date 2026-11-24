@@ -1,7 +1,7 @@
 mock_provider "aws" {
   override_during = plan
   mock_data "aws_iam_instance_profile" {
-    defaults = { role_arn = "arn:aws:iam::967931808920:role/LabRole" }
+    defaults = { role_arn = "arn:aws:iam::362749056012:role/LabRole" }
   }
   mock_data "aws_ssm_parameter" {
     defaults = { value = "ami-0123456789abcdef0" }
@@ -18,19 +18,19 @@ mock_provider "aws" {
     defaults = { id = "sg-0123456789abcdef0" }
   }
   mock_resource "aws_lb" {
-    defaults = { arn = "arn:aws:elasticloadbalancing:us-east-1:967931808920:loadbalancer/app/as-docs-fixture/0123456789abcdef" }
+    defaults = { arn = "arn:aws:elasticloadbalancing:us-east-1:362749056012:loadbalancer/app/as-docs-fixture/0123456789abcdef" }
   }
   mock_resource "aws_lb_target_group" {
-    defaults = { arn = "arn:aws:elasticloadbalancing:us-east-1:967931808920:targetgroup/as-docs-fixture/0123456789abcdef" }
+    defaults = { arn = "arn:aws:elasticloadbalancing:us-east-1:362749056012:targetgroup/as-docs-fixture/0123456789abcdef" }
   }
   mock_resource "aws_lb_listener" {
-    defaults = { arn = "arn:aws:elasticloadbalancing:us-east-1:967931808920:listener/app/as-docs-fixture/0123456789abcdef/0123456789abcdef" }
+    defaults = { arn = "arn:aws:elasticloadbalancing:us-east-1:362749056012:listener/app/as-docs-fixture/0123456789abcdef/0123456789abcdef" }
   }
   mock_resource "aws_wafv2_web_acl" {
-    defaults = { arn = "arn:aws:wafv2:us-east-1:967931808920:regional/webacl/as-docs-fixture/01234567-89ab-cdef-0123-456789abcdef" }
+    defaults = { arn = "arn:aws:wafv2:us-east-1:362749056012:regional/webacl/as-docs-fixture/01234567-89ab-cdef-0123-456789abcdef" }
   }
   mock_resource "aws_cloudwatch_log_group" {
-    defaults = { arn = "arn:aws:logs:us-east-1:967931808920:log-group:aws-waf-logs-as-docs" }
+    defaults = { arn = "arn:aws:logs:us-east-1:362749056012:log-group:aws-waf-logs-as-docs" }
   }
 }
 
@@ -40,7 +40,7 @@ override_data {
   override_during = plan
   values = {
     outputs = {
-      vpc_id                        = "vpc-04354398b0920234a"
+      vpc_id                        = "vpc-0a79932ef5165619e"
       eks_cluster_name              = "as-docs-eks"
       eks_node_group_name           = "as-docs-private-storage"
       eks_cluster_security_group_id = "sg-0a3d3f64bea7b6b6e"
@@ -101,7 +101,7 @@ run "https_com_certificado_redireciona_http_e_bloqueia_mcp" {
   command = plan
   variables {
     public_hostname     = "docs.grupo.test"
-    acm_certificate_arn = "arn:aws:acm:us-east-1:967931808920:certificate/01234567-89ab-cdef-0123-456789abcdef"
+    acm_certificate_arn = "arn:aws:acm:us-east-1:362749056012:certificate/01234567-89ab-cdef-0123-456789abcdef"
   }
   assert {
     condition = (

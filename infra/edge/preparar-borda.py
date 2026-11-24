@@ -19,16 +19,16 @@ def aws(service, *args):
 def main():
     if not Path('backend-service.yaml').is_file() or not Path('waf.tf').is_file():
         raise SystemExit('Entre na pasta da etapa 06 antes de executar.')
-    if aws('sts', 'get-caller-identity')['Account'] != '967931808920':
+    if aws('sts', 'get-caller-identity')['Account'] != '362749056012':
         raise SystemExit('Conta diferente da autorizada.')
     profile = aws('iam', 'get-instance-profile', '--instance-profile-name', 'LabInstanceProfile')['InstanceProfile']
-    if [r['Arn'] for r in profile['Roles']] != ['arn:aws:iam::967931808920:role/LabRole']:
+    if [r['Arn'] for r in profile['Roles']] != ['arn:aws:iam::362749056012:role/LabRole']:
         raise SystemExit('Perfil diferente do confirmado; nao criar novas funcoes IAM.')
     cluster = aws('eks', 'describe-cluster', '--name', 'as-docs-eks')['cluster']
-    if cluster['status'] != 'ACTIVE' or cluster['resourcesVpcConfig']['vpcId'] != 'vpc-04354398b0920234a':
+    if cluster['status'] != 'ACTIVE' or cluster['resourcesVpcConfig']['vpcId'] != 'vpc-0a79932ef5165619e':
         raise SystemExit('Cluster/rede nao correspondem a base verificada.')
     context = subprocess.check_output(['kubectl', 'config', 'current-context'], text=True).strip()
-    if context != 'arn:aws:eks:us-east-1:967931808920:cluster/as-docs-eks':
+    if context != 'arn:aws:eks:us-east-1:362749056012:cluster/as-docs-eks':
         raise SystemExit('Contexto kubectl diferente da base.')
     nodes = read('kubectl', '--request-timeout=15s', 'get', 'nodes', '-o', 'json')['items']
     if len(nodes) != 3 or not all(any(c['type'] == 'Ready' and c['status'] == 'True'

@@ -1,6 +1,6 @@
 provider "aws" {
   region              = "us-east-1"
-  allowed_account_ids = ["967931808920"]
+  allowed_account_ids = ["362749056012"]
   default_tags {
     tags = {
       Project     = "as-docs"
@@ -14,11 +14,11 @@ provider "aws" {
 data "terraform_remote_state" "network" {
   backend = "s3"
   config = {
-    bucket              = "as-docs-tfstate-967931808920-us-east-1"
+    bucket              = "as-docs-tfstate-362749056012-us-east-1"
     key                 = "as-docs/terraform.tfstate"
     region              = "us-east-1"
     encrypt             = true
-    allowed_account_ids = ["967931808920"]
+    allowed_account_ids = ["362749056012"]
   }
 }
 
