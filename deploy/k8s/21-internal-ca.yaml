@@ -1,0 +1,56 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: as-docs-internal-ca
+  namespace: as-docs
+data:
+  ca.crt: '-----BEGIN CERTIFICATE-----
+
+    MIIEFDCCAnygAwIBAgIUQs+gBzmc7DXQxbU3wmMztJn6zNcwDQYJKoZIhvcNAQEL
+
+    BQAwMDEQMA4GA1UECgwHQXMtZG9jczEcMBoGA1UEAwwTQXMtZG9jcyBJbnRlcm5h
+
+    bCBDQTAeFw0yNjExMjQxODA2NThaFw0yNzExMjQxODExNThaMDAxEDAOBgNVBAoM
+
+    B0FzLWRvY3MxHDAaBgNVBAMME0FzLWRvY3MgSW50ZXJuYWwgQ0EwggGiMA0GCSqG
+
+    SIb3DQEBAQUAA4IBjwAwggGKAoIBgQCZ2c7UDXQ4EjPBrAQX9ViXzDCRsIVKMF0l
+
+    ujyWwlW0EFljH/PQye9K1Z6Jdyw4TN2jxKii+1MwvCQSXAWtAlwpW52vr2jqzBAj
+
+    XOVr2Hqr4WfmzD5FQUpoaMVhbXjfAEyyjyY5Cjich52YH3bNZiDpgioBy1u7BRmg
+
+    zaM5PYph012WaLs3566jdrN+xn+o3l9X3nw7ZKZxssvz2JaAcaItOd33Ou9VP0NX
+
+    4BWIX47ITXyz8FhytAQ9J9ciDZgwyKa4ySsgpW/IE3JnYXmfnWcj/BiBGiqZ31CO
+
+    DcXj/DF1LDxG2CkLAD2UEAdcSxo2V2qT4rr4uElntkZaPQkc6CkZ4+7LGCsoEo0e
+
+    YAaChBORrjJc2EdpOn2j7slLD1V2a5JrQ2wbl3S//a2VRj+zmF4KRldTw8IwTKOB
+
+    wG5gNqhM0B7lHx27mqXwW7qp/2mXvQy9ZPfm2soTjWPNJdFD0ByvAjScLooBCPKb
+
+    cs47ok3ovd8Sq/0ChfRU2n9qL2AAas8CAwEAAaMmMCQwEgYDVR0TAQH/BAgwBgEB
+
+    /wIBADAOBgNVHQ8BAf8EBAMCAQYwDQYJKoZIhvcNAQELBQADggGBAJSlaO6IgeGE
+
+    MA11AIGSF3lefuwM+ITDoBdT8BMifXgSEyhCXSUCm9cjb3lX9ouzf+KaftvNinPG
+
+    uZ8xPm65DygOG5oVDbWnXkSJAMlMs/01fxMdkX4AdZWKsdfkp4b7j6tRBNf/KLpm
+
+    uOtbXzXZeG5x1vUzYt3dXxNbyLM3iexbZxU2o+k1gl+/1g+YHwowo9OnL1DYsmJu
+
+    ffWK7YasLaET+saNqA+lKIEYiZRHN3MHG0Q4r+05toBL1SteCY4VR2tFUuWORzjR
+
+    M1FnJ+AwyNTVofakmEt1DYP8sB6o7qS3M/bgfAGMXVwuHLc/i4xnCsDRI47ItPk4
+
+    ZW/Enbpp4e5iIppW2xbLrYOtvsvaUXA1hWYc6ipJaieXrLMnSnplwd93GF6EpUw4
+
+    tohloQgnkmVSy0+/rajjYQhs9xYV3c1Yh9ca4VPeTWmyACFZNxm31e5fknM2INgP
+
+    WvSlFexCuULJyNcpKyspdndtcGBGIHRyF7k45EWYUDAYX5IYs8YujA==
+
+    -----END CERTIFICATE-----
+
+    '

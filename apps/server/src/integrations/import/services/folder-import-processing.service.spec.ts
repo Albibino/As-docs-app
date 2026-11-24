@@ -38,6 +38,7 @@ describe('FolderImportProcessingService', () => {
                 children: [
                   new TextRun('Detalhamento da ação'),
                   new ImageRun({
+                    type: 'png',
                     data: Buffer.from(
                       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+c8B8AAAAASUVORK5CYII=',
                       'base64',

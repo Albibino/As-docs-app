@@ -1,14 +1,17 @@
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: as-docs-backend-storage
   namespace: as-docs
 spec:
-  accessModes: ["ReadWriteOnce"]
+  accessModes:
+  - ReadWriteOnce
   storageClassName: gp3
   resources:
     requests:
       storage: 10Gi
+  volumeMode: Filesystem
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -16,56 +19,100 @@ metadata:
   name: as-docs-backend
   namespace: as-docs
 spec:
-  # Com STORAGE_DRIVER=local o volume é RWO: mantenha 1 réplica.
-  # Para 2+ réplicas (uma por AZ), use STORAGE_DRIVER=s3 e remova o PVC.
+  progressDeadlineSeconds: 600
   replicas: 1
-  strategy: { type: Recreate }
+  revisionHistoryLimit: 10
   selector:
-    matchLabels: { app: as-docs-backend }
+    matchLabels:
+      app: as-docs-backend
+  strategy:
+    type: Recreate
   template:
     metadata:
-      labels: { app: as-docs-backend }
+      labels:
+        app: as-docs-backend
     spec:
+      containers:
+      - env:
+        - name: NODE_EXTRA_CA_CERTS
+          value: /etc/asdocs/internal-ca/ca.crt
+        envFrom:
+        - configMapRef:
+            name: as-docs-backend-config
+        - secretRef:
+            name: as-docs-backend-secret
+        image: 362749056012.dkr.ecr.us-east-1.amazonaws.com/as-docs-backend:oidc-20261124-121252
+        imagePullPolicy: Always
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /api/health/live
+            port: 3000
+            scheme: HTTP
+          periodSeconds: 20
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: backend
+        ports:
+        - containerPort: 3000
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /api/health/live
+            port: 3000
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            memory: 1536Mi
+          requests:
+            cpu: 250m
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        startupProbe:
+          failureThreshold: 30
+          httpGet:
+            path: /api/health/live
+            port: 3000
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /etc/asdocs/internal-ca
+          name: internal-ca
+          readOnly: true
+        - mountPath: /app/data/storage
+          name: storage
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
       securityContext:
+        fsGroup: 1000
         runAsNonRoot: true
         runAsUser: 1000
-        fsGroup: 1000
-      containers:
-        - name: backend
-          image: 362749056012.dkr.ecr.us-east-1.amazonaws.com/as-docs-backend:latest
-          ports:
-            - containerPort: 3000
-          envFrom:
-            - configMapRef: { name: as-docs-backend-config }
-            - secretRef: { name: as-docs-backend-secret }
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities: { drop: ["ALL"] }
-          resources:
-            requests: { cpu: 250m, memory: 512Mi }
-            limits: { memory: 1536Mi }
-          startupProbe:
-            httpGet: { path: /api/health/live, port: 3000 }
-            periodSeconds: 10
-            failureThreshold: 30     # migrações rodam no boot
-          readinessProbe:
-            httpGet: { path: /api/health/live, port: 3000 }
-            periodSeconds: 10
-          livenessProbe:
-            httpGet: { path: /api/health/live, port: 3000 }
-            periodSeconds: 20
-          volumeMounts:
-            - name: storage
-              mountPath: /app/data/storage
+      terminationGracePeriodSeconds: 30
       volumes:
-        - name: storage
-          persistentVolumeClaim:
-            claimName: as-docs-backend-storage
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: ca.crt
+            path: ca.crt
+          name: as-docs-internal-ca
+        name: internal-ca
+      - name: storage
+        persistentVolumeClaim:
+          claimName: as-docs-backend-storage
 ---
-# Entregar ao Muci: substituir SOMENTE o Service em deploy/k8s/22-backend.yaml
-# por este bloco. PVC/Deployment/NetworkPolicy e o nome DNS interno sao mantidos.
-# Nao aplicar depois o Service antigo type: LoadBalancer, pois ele reverteria
-# este contrato e tentaria criar outro balanceador pelo controller ausente.
 apiVersion: v1
 kind: Service
 metadata:
@@ -73,29 +120,34 @@ metadata:
   namespace: as-docs
 spec:
   type: NodePort
-  externalTrafficPolicy: Cluster
   selector:
     app: as-docs-backend
   ports:
-    - name: http
-      port: 3000
-      targetPort: 3000
-      nodePort: 30300
+  - name: http
+    nodePort: 30300
+    port: 3000
+    protocol: TCP
+    targetPort: 3000
+  externalTrafficPolicy: Cluster
 ---
-# Entrada no backend: IA (MCP) e o tráfego vindo do NLB (IPs da VPC).
-# Exige NetworkPolicy habilitado no VPC CNI (enableNetworkPolicy=true).
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: backend-ingress
   namespace: as-docs
 spec:
-  podSelector:
-    matchLabels: { app: as-docs-backend }
-  policyTypes: [Ingress]
   ingress:
-    - from:
-        - podSelector: { matchLabels: { app: as-docs-ai } }
-        - ipBlock: { cidr: 10.0.0.0/16 }   # CIDR da VPC
-      ports:
-        - port: 3000
+  - from:
+    - podSelector:
+        matchLabels:
+          app: as-docs-ai
+    - ipBlock:
+        cidr: 10.0.0.0/16
+    ports:
+    - port: 3000
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app: as-docs-backend
+  policyTypes:
+  - Ingress

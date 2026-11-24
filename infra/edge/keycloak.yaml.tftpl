@@ -1,0 +1,115 @@
+apiVersion: v1
+kind: List
+items:
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: as-docs-keycloak
+      namespace: as-docs-identity
+    spec:
+      type: NodePort
+      externalTrafficPolicy: Local
+      selector:
+        app: as-docs-keycloak
+      ports:
+        - name: https
+          port: 8443
+          targetPort: https
+          nodePort: ${node_port}
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: as-docs-keycloak
+      namespace: as-docs-identity
+    spec:
+      replicas: 1
+      strategy:
+        type: Recreate
+      selector:
+        matchLabels:
+          app: as-docs-keycloak
+      template:
+        metadata:
+          labels:
+            app: as-docs-keycloak
+          annotations:
+            as-docs/realm-sha256: ${jsonencode(realm_hash)}
+        spec:
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: keycloak
+              image: quay.io/keycloak/keycloak:26.8.2
+              args: [start, --import-realm]
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: [ALL]
+              env:
+                - { name: KC_HOSTNAME, value: ${jsonencode(hostname)} }
+                - { name: KC_HOSTNAME_STRICT, value: "true" }
+                - { name: KC_HTTP_RELATIVE_PATH, value: /id }
+                - { name: KC_HTTP_ENABLED, value: "false" }
+                - { name: KC_PROXY_HEADERS, value: xforwarded }
+                - { name: KC_PROXY_TRUSTED_ADDRESSES, value: ${jsonencode(trusted_proxies)} }
+                - { name: KC_HTTP_ACCESS_LOG_ENABLED, value: "false" }
+                - { name: KC_HTTPS_CERTIFICATE_FILE, value: /run/tls/tls.crt }
+                - { name: KC_HTTPS_CERTIFICATE_KEY_FILE, value: /run/tls/tls.key }
+                - { name: KC_HTTP_MANAGEMENT_SCHEME, value: http }
+                - { name: KC_HTTP_MANAGEMENT_RELATIVE_PATH, value: / }
+                - { name: KC_HEALTH_ENABLED, value: "true" }
+                - { name: KC_METRICS_ENABLED, value: "true" }
+                - { name: KC_CACHE, value: local }
+                - { name: KC_DB, value: postgres }
+                - { name: KC_DB_URL_HOST, value: ${jsonencode(db_host)} }
+                - { name: KC_DB_URL_DATABASE, value: keycloak }
+                - { name: KC_DB_URL_PROPERTIES, value: "?sslmode=verify-full&sslrootcert=/run/rds/ca.pem" }
+                - { name: KC_DB_USERNAME, value: keycloak }
+                - name: KC_DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef: { name: as-docs-keycloak-db, key: password }
+                - name: KC_BOOTSTRAP_ADMIN_USERNAME
+                  valueFrom:
+                    secretKeyRef: { name: as-docs-keycloak-bootstrap, key: username, optional: true }
+                - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+                  valueFrom:
+                    secretKeyRef: { name: as-docs-keycloak-bootstrap, key: password, optional: true }
+              ports:
+                - { name: https, containerPort: 8443 }
+                - { name: management, containerPort: 9000 }
+              startupProbe:
+                httpGet: { path: /health/started, port: management }
+                periodSeconds: 5
+                failureThreshold: 60
+              readinessProbe:
+                httpGet: { path: /health/ready, port: management }
+                periodSeconds: 5
+              livenessProbe:
+                httpGet: { path: /health/live, port: management }
+                periodSeconds: 10
+              resources:
+                requests: { cpu: 250m, memory: 768Mi }
+                limits: { memory: 1536Mi }
+              volumeMounts:
+                - { name: realm, mountPath: /opt/keycloak/data/import, readOnly: true }
+                - { name: tls, mountPath: /run/tls, readOnly: true }
+                - { name: rds-ca, mountPath: /run/rds, readOnly: true }
+          volumes:
+            - name: realm
+              configMap: { name: as-docs-keycloak-realm }
+            - name: tls
+              secret: { secretName: as-docs-keycloak-tls, defaultMode: 288 }
+            - name: rds-ca
+              configMap: { name: as-docs-keycloak-rds-ca }
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: as-docs-keycloak-realm
+      namespace: as-docs-identity
+    data:
+      as-docs-realm.json: ${jsonencode(realm_json)}

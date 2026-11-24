@@ -7,3 +7,17 @@
 **/coverage
 **/logs
 **/.cache
+
+# Infraestrutura e credenciais locais nao pertencem a imagem
+infra
+**/.terraform
+**/*.tfvars
+**/*.tfplan
+**/*.tfstate
+**/*.tfstate.*
+**/*.pem
+**/*.key
+**/.aws
+
+# Arquivos locais de desenvolvimento
+.vscode

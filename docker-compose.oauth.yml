@@ -1,0 +1,21 @@
+# Corte local backend → IA. Use após provisionar os clientes no Keycloak.
+# docker compose -f docker-compose.yml -f docker-compose.oauth.yml --profile oidc …
+services:
+  backend:
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    environment:
+      DOCS_AI_OAUTH_ENABLED: &oauth_enabled 'true'
+      OIDC_CLIENT_SECRET_INDEXER: '${OIDC_CLIENT_SECRET_INDEXER:?configure o cliente docs-app-indexer}'
+      OIDC_CLIENT_SECRET_ASSISTANT: '${OIDC_CLIENT_SECRET_ASSISTANT:?configure o cliente docs-app-assistant}'
+      DOCS_AI_HMAC_SECRET: !reset null
+
+  ai:
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    environment:
+      AI_OAUTH_ENABLED: *oauth_enabled
+      AI_OAUTH_CLIENTS_JSON: '${AI_OAUTH_CLIENTS_JSON:?configure os subjects dos clientes e o workspace}'
+      DOCS_AI_HMAC_SECRET: !reset null
