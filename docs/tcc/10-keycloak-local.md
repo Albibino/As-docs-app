@@ -168,19 +168,20 @@ embeddings. Para preparar o corte coordenado no Compose local:
    ```dotenv
    AI_OAUTH_CLIENTS_JSON='{"docs-app-indexer":{"subject":"<sub-indexador>","tenantId":"<workspace-id>"},"docs-app-assistant":{"subject":"<sub-assistente>","tenantId":"<workspace-id>"}}'
    AI_OIDC_JWKS_URL=http://keycloak:8080/realms/as-docs/protocol/openid-connect/certs
-   DOCS_AI_OAUTH_ENABLED=true
    ```
 
-A flag é compartilhada pelo Compose entre o backend e a IA para evitar modos
-incompatíveis. Na ativação, retire `DOCS_AI_HMAC_SECRET` do arquivo local.
-Mantenha `APP_SECRET`, que protege a sessão local e a credencial MCP,
-independentemente do transporte. Com o Keycloak saudável, recrie os dois
-serviços juntos para que nenhuma instância antiga continue falando HMAC:
+O override `docker-compose.oauth.yml` ativa Client Credentials no backend e
+na IA, remove `DOCS_AI_HMAC_SECRET` do ambiente dos dois containers e faz
+ambos aguardarem o healthcheck do Keycloak. Mantenha `APP_SECRET`, que protege
+a sessão local e a credencial MCP. Preserve o nome do projeto e os demais
+arquivos Compose da stack existente, se houver, com o override OAuth por
+último. Recrie os dois serviços juntos:
 
 ```bash
-docker compose --env-file "$env_file" --profile oidc config --quiet
-docker compose --env-file "$env_file" --profile oidc up -d --build --wait backend ai
-docker compose --env-file "$env_file" --profile oidc exec -T ai \
+oauth_compose=(docker compose --env-file "$env_file" -f docker-compose.yml -f docker-compose.oauth.yml --profile oidc)
+"${oauth_compose[@]}" config --quiet
+"${oauth_compose[@]}" up -d --build --wait backend ai
+"${oauth_compose[@]}" exec -T ai \
   python -c 'from urllib.request import urlopen; print(urlopen("http://127.0.0.1:8000/health/ready", timeout=5).status)'
 ```
 
@@ -189,8 +190,12 @@ emissão ou validação de tokens. Para validar o corte, indexe uma página e
 faça uma pergunta sobre ela; para exercitar a credencial MCP separada, atualize
 a página e pergunte antes que a nova versão seja indexada.
 
-Para voltar ao modo legado, escolha explicitamente `DOCS_AI_OAUTH_ENABLED=false`
-e restaure a configuração HMAC dos dois lados. Não desligue `OIDC_ENABLED` para
+Depois do corte, use a mesma combinação de arquivos nas próximas subidas.
+Os scripts que usam só o Compose base não carregam o override; neles, a
+seleção de OAuth continua dependendo de `DOCS_AI_OAUTH_ENABLED=true` no
+arquivo local. Para voltar ao modo legado, remova o override, escolha
+`DOCS_AI_OAUTH_ENABLED=false` e recrie os dois
+serviços com a configuração HMAC restaurada. Não desligue `OIDC_ENABLED` para
 fazer esse rollback; o login de usuários é independente. A concessão de HTTP
 restringe-se ao laboratório local e não se aplica aos manifests AWS. Em
 OAuth, o backend só envia Bearer por HTTP a `http://ai:8000` com issuer

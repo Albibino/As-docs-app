@@ -249,4 +249,16 @@ A IA verifica assinatura, emissor, audiência, prazo, conta de serviço e
 escopo, e restringe cada cliente ao workspace cadastrado. O Compose usa
 `DOCS_AI_OAUTH_ENABLED` nos dois serviços. Quando ativa, essa configuração
 não aceita HMAC. O login web, `APP_SECRET` e a delegação MCP permanecem
-separados. Consulte [o roteiro de ativação](10-keycloak-local.md#5-clientes-técnicos-da-ia).
+separados. Para o corte explícito, `docker-compose.oauth.yml` ativa os dois
+lados, retira o segredo HMAC dos containers e exige Keycloak saudável na
+subida. Consulte [o roteiro de ativação](10-keycloak-local.md#5-clientes-técnicos-da-ia).
+
+## D17. Servidor de identidade no EKS
+
+Na etapa AWS autorizada posteriormente, o Keycloak usa um Deployment no EKS
+privado e banco/role exclusivos no RDS existente. Seu realm é servido em
+`https://<domínio>/id/realms/as-docs` no ALB com WAF; administração e gestão
+não têm rota pública. O state da borda não recebe credenciais. O corte de login
+do app exige os vínculos de conta do issuer AWS; o transporte para a IA não é
+ativado enquanto o trecho backend → IA não estiver em HTTPS. Ver
+[provisionamento e verificação](../../infra/edge/KEYCLOAK.md).
