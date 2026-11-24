@@ -32,6 +32,7 @@ HTTPS nao foi habilitado: faltam dominio/certificado confirmados e DNS do grupo.
 A origem HTTP e temporaria. A configuracao aceita ACM real em us-east-1 e prepara
 listener TLS/redirect quando esses dados forem informados. Login/Keycloak, IA,
 SSE/WebSocket, colaboracao, uploads e restauracao de backups ainda exigem testes.
+O provisionamento opt-in do Keycloak está em [edge/KEYCLOAK.md](edge/KEYCLOAK.md).
 
 Entrega pratica em edge/ENTREGA_AO_MUCI.md e database/ENTREGA_AO_MUCI.md.
 O acesso ao GitHub nao concede acesso AWS; usar sessao autorizada nesta conta.

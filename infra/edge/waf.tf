@@ -14,6 +14,65 @@ resource "aws_wafv2_web_acl" "public" {
     allow {}
   }
 
+  # O ALB adiciona os seus próprios X-Forwarded-* ao enviar ao destino.
+  # No caminho de identidade, recuse versões fornecidas pelos clientes.
+  dynamic "rule" {
+    for_each = local.keycloak_active ? [1] : []
+    content {
+      name     = "keycloak-client-proxy-headers"
+      priority = 5
+      action {
+        block {}
+      }
+      statement {
+        and_statement {
+          statement {
+            byte_match_statement {
+              positional_constraint = "STARTS_WITH"
+              search_string         = "/id/"
+              field_to_match {
+                uri_path {}
+              }
+              text_transformation {
+                priority = 0
+                type     = "URL_DECODE"
+              }
+              text_transformation {
+                priority = 1
+                type     = "NORMALIZE_PATH"
+              }
+            }
+          }
+          statement {
+            or_statement {
+              dynamic "statement" {
+                for_each = toset(["forwarded", "x-forwarded-for", "x-forwarded-host", "x-forwarded-port", "x-forwarded-prefix", "x-forwarded-proto"])
+                content {
+                  size_constraint_statement {
+                    comparison_operator = "GT"
+                    size                = 0
+                    field_to_match {
+                      single_header { name = statement.value }
+                    }
+                    text_transformation {
+                      priority = 0
+                      type     = "NONE"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      visibility_config {
+        cloudwatch_metrics_enabled = true
+        metric_name                = "as-docs-keycloak-proxy-headers"
+        sampled_requests_enabled   = false
+      }
+    }
+  }
+
   rule {
     name     = "common"
     priority = 10

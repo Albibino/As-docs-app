@@ -1,6 +1,7 @@
 # Stack local: frontend em http://localhost:8080, com backend e IA privados.
 # O serviço `ai` é construído do repositório irmão ../As-docs-ai (AS_DOCS_AI_PATH).
 # Keycloak opcional (perfil oidc), em http://localhost:9090. Ver docs/tcc/10-keycloak-local.md.
+# Para ativar Client Credentials nos dois serviços, adicione docker-compose.oauth.yml.
 name: as-docs
 
 services:
