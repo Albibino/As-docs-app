@@ -7,7 +7,10 @@ mock_provider "aws" {
     defaults = { resources = [{ autoscaling_groups = [{ name = "eks-as-docs-fixture" }] }] }
   }
   mock_resource "aws_lb" {
-    defaults = { arn = "arn:aws:elasticloadbalancing:us-east-1:967931808920:loadbalancer/app/as-docs-fixture/0123456789abcdef" }
+    defaults = {
+      arn      = "arn:aws:elasticloadbalancing:us-east-1:967931808920:loadbalancer/app/as-docs-fixture/0123456789abcdef"
+      dns_name = "as-docs-public-123456.us-east-1.elb.amazonaws.com"
+    }
   }
   mock_resource "aws_lb_target_group" {
     defaults = { arn = "arn:aws:elasticloadbalancing:us-east-1:967931808920:targetgroup/as-docs-fixture/0123456789abcdef" }
@@ -18,7 +21,7 @@ mock_provider "aws" {
 }
 
 override_data {
-  target          = data.terraform_remote_state.network
+  target          = data.terraform_remote_state.network[0]
   override_during = plan
   values = {
     outputs = {
@@ -85,5 +88,32 @@ run "keycloak_publica_somente_realm_e_recursos_em_https" {
       !strcontains(local.keycloak_manifest, "localhost:8080")
     )
     error_message = "O realm deve usar o callback HTTPS exato, cadastro fechado e sem configuração do laboratório local."
+  }
+}
+
+run "keycloak_http_lab_publica_somente_login_web" {
+  command = plan
+  variables {
+    keycloak_enabled  = true
+    keycloak_lab_http = true
+    keycloak_ai_oauth = true
+    keycloak_db_host  = "as-docs-postgres.fixture.us-east-1.rds.amazonaws.com"
+  }
+  assert {
+    condition = (
+      output.keycloak_issuer == "http://as-docs-public-123456.us-east-1.elb.amazonaws.com/id/realms/as-docs" &&
+      aws_lb_listener_rule.keycloak[0].listener_arn == aws_lb_listener.http.arn &&
+      aws_lb_target_group.keycloak[0].protocol == "HTTPS" &&
+      one([for c in aws_lb_listener_rule.keycloak[0].condition : one(c.path_pattern) if length(c.path_pattern) > 0]).values == toset(["/id/realms/as-docs/protocol/openid-connect/auth", "/id/realms/as-docs/login-actions/*", "/id/resources/*"]) &&
+      one(aws_lb_listener_rule.keycloak_block[0].action).type == "fixed-response" &&
+      local.keycloak_realm.sslRequired == "none"
+    )
+    error_message = "A exceção HTTP não pode expor administração nem token e deve manter TLS entre ALB e Keycloak."
+  }
+  assert {
+    condition = anytrue([for entry in jsondecode(local.keycloak_manifest).items[3].spec.ingress[0].from :
+      try(entry.podSelector.matchLabels.app == "as-docs-ai" && entry.namespaceSelector.matchLabels["kubernetes.io/metadata.name"] == "as-docs", false)
+    ])
+    error_message = "A IA precisa alcançar o JWKS privado em 8443, sem abrir o token no ALB."
   }
 }

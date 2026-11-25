@@ -131,6 +131,44 @@ it('rejects a remote HTTP backchannel even for a localhost issuer', async () => 
   }
 });
 
+it('allows an opted-in AWS HTTP web issuer only via the private HTTPS backchannel', async () => {
+  const origin = 'http://as-docs-public-123456.us-east-1.elb.amazonaws.com';
+  const labIssuer = `${origin}/id/realms/as-docs`;
+  const backchannel = 'https://as-docs-keycloak.as-docs-identity.svc.cluster.local:8443';
+  const fetchSpy = jest.spyOn(global, 'fetch').mockImplementation(async () =>
+    Response.json({ issuer: labIssuer, authorization_endpoint: `${labIssuer}/auth`, token_endpoint: `${labIssuer}/token` }),
+  );
+  const provider = (flag: string, transport: string, oauth = 'false') => new OidcProviderService(
+    new EnvironmentService(new ConfigService({
+      OIDC_ISSUER: labIssuer,
+      OIDC_BACKCHANNEL_URL: transport,
+      OIDC_AWS_LAB_HTTP: flag,
+      DOCS_AI_OAUTH_ENABLED: oauth,
+    })),
+  );
+  try {
+    await expect(provider('false', backchannel).configuration('web', 'fixture')).rejects.toThrow('OIDC requires HTTPS');
+    await expect(provider('true', origin).configuration('web', 'fixture')).rejects.toThrow('OIDC requires HTTPS');
+    await expect(provider('true', backchannel).clientCredentials('tech', 'fixture', 'scope')).rejects.toThrow('OIDC requires HTTPS');
+    expect(fetchSpy).not.toHaveBeenCalled();
+    const configuration = await provider('true', backchannel).configuration('web', 'fixture');
+    const oidc = await import('openid-client');
+    expect(oidc.buildAuthorizationUrl(configuration, { response_type: 'code' }).origin).toBe(origin);
+    expect(String(fetchSpy.mock.calls[0][0])).toBe(`${backchannel}/id/realms/as-docs/.well-known/openid-configuration`);
+    fetchSpy.mockClear().mockResolvedValueOnce(Response.json({
+      issuer: labIssuer, token_endpoint: `${labIssuer}/token`,
+    })).mockResolvedValueOnce(Response.json({ access_token: 'fixture', token_type: 'Bearer' }));
+    await expect(provider('true', backchannel, 'true').clientCredentials('tech', 'fixture', 'scope'))
+      .resolves.toMatchObject({ access_token: 'fixture' });
+    expect(fetchSpy.mock.calls.map(([url]) => String(url))).toEqual([
+      `${backchannel}/id/realms/as-docs/.well-known/openid-configuration`,
+      `${backchannel}/id/realms/as-docs/token`,
+    ]);
+  } finally {
+    fetchSpy.mockRestore();
+  }
+});
+
 it('does not resend Basic credentials to a redirected token endpoint', async () => {
   const { server, received } = setup({ redirect: true });
   try {

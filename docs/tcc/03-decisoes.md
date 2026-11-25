@@ -262,3 +262,65 @@ não têm rota pública. O state da borda não recebe credenciais. O corte de lo
 do app exige os vínculos de conta do issuer AWS; o transporte para a IA não é
 ativado enquanto o trecho backend → IA não estiver em HTTPS. Ver
 [provisionamento e verificação](../../infra/edge/KEYCLOAK.md).
+
+## D18. Conta da sessão no backend S3 da rede e do EKS
+
+O backend da rede e do EKS não restringe o ID da conta da sessão; as permissões
+do S3 continuam obrigatórias. O bucket, a chave do state e a validação de
+`expected_account_id` no provider não mudaram. Uma implantação em outra conta
+deve usar state próprio e as roles do EKS dessa conta. Ver
+[Backend e colaboração](../../infra/terraform/README.md#backend-e-colaboração).
+
+## D19. Terraform individual para testes no AWS Academy
+
+Cada integrante aplica a raiz `infra/lab` em uma conta sem recursos do projeto
+e mantém um único state local. A raiz usa a identidade da sessão, vincula o
+state à conta do primeiro `apply` e permite uma trava de conta opcional antes
+do primeiro plano. Ela passa os outputs entre rede/EKS, RDS e borda e não lê
+nem migra o state S3 do grupo.
+
+No modo padrão `learner_lab`, a raiz descobre as roles EKS fornecidas pelo
+Academy, reutiliza `LabInstanceProfile` e não cria roles nem anexa políticas.
+O CSI usa a `LabRole` existente dos nós; a aplicação da política contra
+IMDS antes dos workloads é obrigatória. O RDS recebe uma senha efêmera via
+`TF_VAR_db_password`, sem depender da integração com o Secrets Manager.
+Em `managed`, uma conta que permite criar IAM continua podendo usar Pod
+Identity e senha gerenciada pelo RDS. Use states separados para os modos.
+A borda recebe o Auto Scaling Group do EKS nos dois casos. A implantação
+compartilhada mantém a configuração anterior. Ver o
+[roteiro e as restrições do laboratório](../../infra/lab/README.md).
+
+## D20. Deploy AWS separado do provisionamento
+
+O manifesto da aplicação adota o NodePort 30300 do NLB criado pelo Terraform.
+O deploy público usa HTTPS por padrão e OIDC do Keycloak, sem seletor legado.
+Frontend e backend são publicados como imagens separadas e implantados por
+digest, ambos associados ao SHA de origem. O fluxo manual fica em
+[Deploy na AWS](../../deploy/README.md); a futura automação da `main` pode
+reutilizá-lo sem atualizar o código diretamente nas EC2.
+
+## D21. CI da main e primeiro deploy do laboratório
+
+Reutilizar o CI do Pedro Muci para PRs e pushes na `main`. O CD publicará
+artefatos por digest e reutilizará o procedimento do primeiro deploy, separado
+do `terraform apply`. O laboratório terá duas contas descartáveis no Keycloak,
+com senha igual ao login; a exceção não vale para contas administrativas ou
+técnicas. Ver [reaproveitamento e pendências](12-entrega-aws-ci-cd.md).
+
+## D22. Login HTTP opt-in no Learner Lab
+
+O dono autorizou login pelo DNS padrão HTTP do ALB para o laboratório
+descartável. O HTTPS continua padrão. A exceção não libera cadastro, seletor,
+administração ou emissão pública de tokens, nem altera o OAuth técnico da IA.
+Discovery, JWKS e troca de código do backend continuam no HTTPS privado do
+Keycloak. Ver [procedimento HTTP](../../infra/edge/KEYCLOAK.md#modo-http-do-learner-lab).
+
+## D23. Client Credentials no deploy individual da AWS
+
+Após o bootstrap, `infra/lab` pode implantar IA e backend por digest com a
+opção `ai_oauth`. Os `sub` técnicos e o workspace são descobertos na conta do
+laboratório; segredos não vão para o plano ou state. A IA é privada e o
+provisionador verifica autorização antes de ativar OAuth no backend. Quando
+o login HTTP já está autorizado no Learner Lab, o issuer anunciado continua
+o mesmo, mas troca de tokens e JWKS usam exclusivamente TLS privado. Não há
+fallback para HMAC. Ver [provisionamento e aceite](13-ia-oauth-aws.md).

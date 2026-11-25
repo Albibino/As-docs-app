@@ -1,0 +1,25 @@
+# Copie para terraform.tfvars e substitua pelo IPv4 público de saída do operador.
+eks_api_access_cidrs = ["192.0.2.5/32"]
+
+# Opcionais: trava de conta antes do primeiro apply e ajustes de catálogo.
+# expected_account_id = "111122223333"
+# eks_version         = "1.37"
+# db_engine_version   = "18.6"
+# db_instance_class   = "db.t3.micro"
+
+# O padrão é learner_lab. Forneça a senha via TF_VAR_db_password, nunca aqui.
+# Em conta comum que permite criar IAM, use iam_mode = "managed" sem essa senha.
+# Se a descoberta não funcionar, informe os ARNs das roles da sua conta:
+# eks_cluster_role_arn = "arn:aws:iam::111122223333:role/LabEksClusterRole"
+# eks_node_role_arn    = "arn:aws:iam::111122223333:role/LabEksNodeRole"
+
+# Desabilitar o CSI impede o provisionamento dos volumes gp3 da aplicação.
+# eks_storage_enabled = false
+
+# Depois de preparar Keycloak, Redis, backend e Secrets (ver docs/tcc/13-ia-oauth-aws.md):
+# ai_oauth = {
+#   backend_image = "<registro>/as-docs-backend@sha256:<digest>"
+#   ai_image      = "<registro>/as-docs-ai@sha256:<digest>"
+#   caddy_image   = "<registro>/caddy@sha256:<digest>"
+#   provider_mode = "openai" # ou diagnostic para um laboratório descartável
+# }

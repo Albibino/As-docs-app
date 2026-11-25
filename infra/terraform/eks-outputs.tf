@@ -17,6 +17,10 @@ output "eks_node_group_name" {
   value = aws_eks_node_group.private.node_group_name
 }
 
+output "eks_autoscaling_group_name" {
+  value = try(one(one(aws_eks_node_group.private.resources).autoscaling_groups).name, null)
+}
+
 output "nat_gateways" {
   description = "NAT por zona; cada sub-rede privada usa o NAT de sua própria zona."
   value = {

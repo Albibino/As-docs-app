@@ -70,8 +70,15 @@ export class OidcProviderService {
       localHttp &&
       (transport.origin === 'http://keycloak:8080' ||
         ['localhost', '127.0.0.1', '[::1]'].includes(transport.hostname));
+    const awsLabHttp =
+      (web || this.env.isDocsAiOAuthEnabled()) &&
+      this.env.isAwsLabHttpOidcEnabled() &&
+      issuer.protocol === 'http:' && !issuer.port &&
+      /^as-docs-public-\d+\.us-east-1\.elb\.amazonaws\.com$/.test(issuer.hostname) &&
+      issuer.pathname === '/id/realms/as-docs' &&
+      transport.origin === 'https://as-docs-keycloak.as-docs-identity.svc.cluster.local:8443';
     if (
-      (issuer.protocol !== 'https:' && !localHttp) ||
+      (issuer.protocol !== 'https:' && !localHttp && !awsLabHttp) ||
       (transport.protocol !== 'https:' && !localTransport)
     ) {
       throw new Error('OIDC requires HTTPS outside the local Compose lab');
@@ -84,7 +91,7 @@ export class OidcProviderService {
       {
         timeout: 5,
         execute: [
-          ...(localHttp ? [oidc.allowInsecureRequests] : []),
+          ...(localHttp || awsLabHttp ? [oidc.allowInsecureRequests] : []),
           ...(web ? [oidc.enableNonRepudiationChecks] : []),
         ],
         [oidc.customFetch]: (url, options) => {

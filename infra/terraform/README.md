@@ -71,8 +71,15 @@ mudou, analise a atualização da lista de acesso da API antes de aplicar.
 
 `backend.tf` aponta para o bucket `as-docs-tfstate-967931808920-us-east-1`, chave
 `as-docs/terraform.tfstate`, com `use_lockfile = true`. Ele pode ser versionado,
-junto com `.terraform.lock.hcl`. O acesso GitHub não concede acesso AWS: o executor
-precisa de sessão autorizada na mesma conta e permissões S3 para o state e o lock.
+junto com `.terraform.lock.hcl`. O backend não filtra o ID da conta da sessão,
+mas o acesso ao state e ao lock continua dependendo das permissões do S3. Em
+um diretório já inicializado, use `terraform init -reconfigure` para recarregar
+a configuração sem migrar o state.
+
+Para implantar em outra conta, use um bucket e um state próprios via
+`-backend-config`, configure `expected_account_id` e os ARNs das roles do EKS
+para essa conta. Não reaproveite o state da implantação existente. Os stacks
+de banco e borda têm configurações separadas e não foram alterados.
 
 States, backups, planos, providers, credenciais e o arquivo local de IP ficam
 fora do Git. Não mova o projeto inteiro para `/tmp` ou `/var/tmp`. Não reaplique

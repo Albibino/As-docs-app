@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-account=967931808920
+account=${EXPECTED_AWS_ACCOUNT_ID:?}
 region=us-east-1
-cluster=as-docs-eks
+cluster=${EKS_CLUSTER:?}
 namespace=as-docs-identity
-context="arn:aws:eks:$region:$account:cluster/$cluster"
 
-[[ "${EKS_CLUSTER:?}" == "$cluster" ]] || { printf 'Cluster inesperado.\n' >&2; exit 1; }
+[[ "$account" =~ ^[0-9]{12}$ ]] || { printf 'ID de conta AWS inválido.\n' >&2; exit 1; }
+[[ "$cluster" =~ ^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$ ]] || { printf 'Nome de cluster inválido.\n' >&2; exit 1; }
+context="arn:aws:eks:$region:$account:cluster/$cluster"
 [[ "$(aws sts get-caller-identity --region "$region" --query Account --output text --no-cli-pager)" == "$account" ]] || {
   printf 'Conta AWS não autorizada ou credencial indisponível.\n' >&2; exit 1;
 }

@@ -45,6 +45,10 @@ export class EnvironmentVariables {
 
   @IsOptional()
   @IsIn(['true', 'false'])
+  OIDC_AWS_LAB_HTTP: string;
+
+  @IsOptional()
+  @IsIn(['true', 'false'])
   DOCS_AI_OAUTH_ENABLED: string;
 
   @ValidateIf(

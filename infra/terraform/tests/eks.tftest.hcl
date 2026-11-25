@@ -90,3 +90,26 @@ run "rejeita_instancia_maior_que_a_entrega" {
 
   expect_failures = [var.eks_node_instance_type]
 }
+
+run "csi_portatil_usa_a_role_configurada_sem_buscar_labrole" {
+  command = plan
+
+  variables {
+    expected_account_id                  = "111122223333"
+    eks_cluster_role_arn                 = "arn:aws:iam::111122223333:role/ExampleClusterRole"
+    eks_node_role_arn                    = "arn:aws:iam::111122223333:role/ExampleNodeRole"
+    eks_storage_enabled                  = true
+    eks_storage_use_configured_node_role = true
+  }
+
+  assert {
+    condition = (
+      length(data.aws_iam_role.storage_nodes) == 0 &&
+      length(aws_eks_addon.ebs_csi) == 1 &&
+      aws_eks_node_group.private.node_role_arn == var.eks_node_role_arn &&
+      output.storage_integration.node_role == var.eks_node_role_arn &&
+      output.existing_eks_role_arns.nodes == var.eks_node_role_arn
+    )
+    error_message = "O CSI portátil deve usar a role configurada, sem consultar LabRole."
+  }
+}

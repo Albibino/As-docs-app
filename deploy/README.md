@@ -1,56 +1,62 @@
-# Deploy na AWS
+# Deploy manual na AWS
 
-```
-Usuário → WAF → ALB (público) → EC2 frontend (AZ A, AZ B) — Nginx
-            Nginx /api, /socket.io, /collab → NLB interno → backend (EKS, privada)
-            backend → As-docs-ai (ClusterIP) → OpenAI (via NAT)
-            backend/IA → Redis 8 (EKS)    backend → RDS PostgreSQL
-```
+O Terraform prepara `ALB público → Nginx nas duas EC2 → NLB privado → NodePort 30300 → backend no EKS`. O backend usa Redis 8 e RDS. O primeiro `apply` não publica a aplicação. No laboratório individual, use somente os outputs de `infra/lab`; a entrega histórica ao Muci contém dados de outra conta. Após o bootstrap, use [IA com Client Credentials](../docs/tcc/13-ia-oauth-aws.md) para o deploy opt-in dos dois serviços em OAuth.
 
-## Imagens
+Para o laboratório descartável sem domínio nem ACM, siga o [modo HTTP do Learner Lab](../infra/edge/KEYCLOAK.md#modo-http-do-learner-lab). O restante deste roteiro descreve o modo HTTPS padrão.
 
-```bash
-docker build -f frontend/Dockerfile -t ghcr.io/albibino/as-docs-frontend:latest .
-docker build -f backend/Dockerfile  -t ghcr.io/albibino/as-docs-backend:latest .
-```
-(ou ECR: troque o prefixo da imagem nos manifests e no `.env` da EC2.)
+## 1. Conta, HTTPS e identidade
 
-## Backend no EKS (subnets privadas)
+- Compare `terraform -chdir=infra/lab output -raw aws_account_id` com `aws sts get-caller-identity --query Account --output text`. Pare se não coincidirem. Use `terraform -chdir=infra/lab output` para obter cluster, EC2, RDS e `backend_url`. Configure o kubeconfig com `aws eks update-kubeconfig --region us-east-1 --name <cluster>` e defina `CTX` com o ARN do cluster verificado.
+- Configure DNS e certificado ACM `ISSUED` na mesma conta/região. Siga [Keycloak no EKS](../infra/edge/KEYCLOAK.md) a partir de `infra/lab`, sem usar o state nem os helpers legados. Prepare o banco e os Secrets do Keycloak. Valide a descoberta OIDC na origem HTTPS. Não use o DNS HTTP do ALB para publicar o app nem exponha o seletor legado.
+- Prepare as duas contas autorizadas do realm e o cliente `docs-app-web` com callback `https://<domínio>/api/auth/oidc/callback`. Após o seed do backend, vincule os pares `(iss, sub)` às contas locais no RDS. Use a transação SQL de `scripts/tcc-link-oidc.sh` como referência, substituindo o issuer local pelo issuer HTTPS e usando um cliente autorizado na VPC. Este passo inicial não ativa OAuth app → IA.
+
+## 2. Imagens da mesma revisão
+
+Defina `REGISTRY_PREFIX` como o prefixo autorizado e faça o build de um checkout limpo da revisão aprovada. Em registro privado, prepare o pull no EKS (permissões do kubelet ou `imagePullSecrets`) e nas duas EC2. Não coloque credenciais no contexto do build, user-data ou comandos SSM. Não compile nas EC2.
 
 ```bash
-kubectl apply -f deploy/k8s/00-namespace.yaml -f deploy/k8s/10-redis.yaml
-kubectl -n as-docs create secret generic as-docs-backend-secret \
-  --from-literal=APP_SECRET="$(openssl rand -hex 32)" \
-  --from-literal=DOCS_AI_HMAC_SECRET="<mesmo do As-docs-ai>" \
-  --from-literal=DATABASE_URL="postgresql://USUARIO:SENHA@<endpoint-rds>:5432/asdocs?sslmode=require"
-kubectl apply -f deploy/k8s/20-backend-config.yaml -f deploy/k8s/22-backend.yaml
-kubectl -n as-docs get svc as-docs-backend   # EXTERNAL-IP = DNS do NLB interno
+revision=$(git rev-parse HEAD)
+docker build --platform linux/amd64 -f backend/Dockerfile  -t "$REGISTRY_PREFIX/as-docs-backend:$revision" .
+docker build --platform linux/amd64 -f frontend/Dockerfile -t "$REGISTRY_PREFIX/as-docs-frontend:$revision" .
+docker push "$REGISTRY_PREFIX/as-docs-backend:$revision"
+docker push "$REGISTRY_PREFIX/as-docs-frontend:$revision"
 ```
-Depois aplique `deploy/k8s` do repositório **As-docs-ai**.
 
-## Frontend nas EC2 (subnets públicas)
+Guarde o SHA de origem e os dois digests publicados. Use `registro/repositório@sha256:<digest>` para `BACKEND_IMAGE` e `FRONTEND_IMAGE`. O futuro CI/CD pode reutilizar este procedimento com artefatos gerados para o SHA do merge na `main`, sem `git pull` nos hosts.
 
-Use `deploy/ec2/user-data.sh` no Launch Template, com `BACKEND_URL` = DNS do NLB
-interno (`http://<dns>:3000`) e `PUBLIC_APP_URL` = domínio público.
-Target group do ALB: porta 80, health check `GET /healthz`.
+## 3. EKS
 
-## Onde mudar cada coisa
+Defina `PUBLIC_APP_URL=https://<domínio>` sem barra final. Prepare um arquivo `KEY=value` (modo `0600`, fora do Git) com `DATABASE_URL` de um usuário dedicado ao app com TLS no RDS, `APP_SECRET`, `DOCS_AI_HMAC_SECRET` e `OIDC_CLIENT_SECRET_WEB`. Não use o administrador do RDS no Deployment nem regenere `APP_SECRET` a cada atualização. Defina `BACKEND_SECRET_FILE` com o caminho, não com o conteúdo.
 
-| Quero apontar para… | Onde |
-|---|---|
-| Outro backend (frontend) | `.env` da EC2 → `BACKEND_URL`; `docker compose up -d` |
-| Domínio público | `PUBLIC_APP_URL` (EC2) **e** `APP_URL` (ConfigMap do backend) |
-| Outro banco | Secret `DATABASE_URL` → `rollout restart` |
-| Outra IA | ConfigMap `DOCS_AI_URL` |
-| Redis | ConfigMap `REDIS_URL` (backend) / `REDIS_URL` (IA) |
+```bash
+set -euo pipefail
+bundle=$(mktemp)
+trap 'rm -f "$bundle"' EXIT
+BACKEND_IMAGE="$BACKEND_IMAGE" PUBLIC_APP_URL="$PUBLIC_APP_URL" bash deploy/render-aws-backend.sh > "$bundle"
+kubectl --context "$CTX" apply -f infra/terraform/storage-gp3.yaml
+kubectl --context "$CTX" -n as-docs create secret generic as-docs-backend-secret \
+  --from-env-file="$BACKEND_SECRET_FILE" --dry-run=client -o yaml |
+  kubectl --context "$CTX" apply --server-side -f -
+kubectl --context "$CTX" apply -f deploy/k8s/10-redis.yaml
+kubectl --context "$CTX" -n as-docs rollout status statefulset/redis --timeout=5m
+kubectl --context "$CTX" apply --dry-run=server -f "$bundle"
+kubectl --context "$CTX" apply -f "$bundle"
+kubectl --context "$CTX" -n as-docs rollout status deployment/as-docs-backend --timeout=8m
+```
 
-## Security Groups
+O resultado inclui NodePort. Não aplique `deploy/k8s/` inteiro (inclui Secret de exemplo e bases não renderizadas). Se mudar apenas Secret ou ConfigMap, reinicie o Deployment explicitamente. Para a IA, siga `deploy/README.md` do repositório As-docs-ai com imagem acessível, a chave própria da OpenAI e o mesmo HMAC. O health check do backend não comprova funcionamento da IA.
 
-| SG | Entrada |
-|---|---|
-| ALB | 443 (e 80 → redirect) de 0.0.0.0/0, com WAF associado |
-| EC2 frontend | 80 só do SG do ALB; sem SSH (use SSM Session Manager) |
-| NLB interno / nós EKS | 3000 só do SG das EC2 frontend |
-| RDS | 5432 só do SG dos nós/pods do EKS |
+## 4. Duas EC2 e validação
 
-`/mcp` é bloqueado no Nginx: só a IA acessa, dentro do cluster.
+Use SSM, sem abrir SSH. Em `/opt/as-docs` de cada EC2, coloque `deploy/ec2/docker-compose.yml` com o nome `docker-compose.yml` e um `.env` conforme `frontend/.env.example`. Use `BACKEND_URL` do output privado `backend_url`, a origem HTTPS em `PUBLIC_APP_URL` e o digest em `FRONTEND_IMAGE`. Instale um plugin Compose aprovado se ainda não estiver disponível.
+
+```bash
+cd /opt/as-docs
+docker compose config --quiet && docker compose pull && docker compose up -d
+curl -fsS http://127.0.0.1/healthz
+curl -fsS http://127.0.0.1/api/health/live
+```
+
+Em atualizações, faça um host por vez e aguarde `healthy` antes de atualizar o outro. Confirme HTTP 200 em `/healthz` e `/api/health/live` pela origem HTTPS, os dois target groups saudáveis e login das duas contas, sem sessão pelo seletor legado. Teste IA, SSE, WebSocket, colaboração e uploads. Para reverter, reaplique os digests anteriores e a configuração correspondente; confirme a compatibilidade das migrações do RDS antes de reverter o backend.
+
+`bash deploy/test-aws-render.sh` valida o manifesto localmente sem publicar imagens ou consultar a AWS.

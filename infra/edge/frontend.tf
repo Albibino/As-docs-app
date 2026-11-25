@@ -27,17 +27,6 @@ resource "aws_instance" "frontend" {
   }
   volume_tags = { Project = "as-docs", ManagedBy = "Terraform", Stage = "06-borda" }
   tags        = { Name = "as-docs-frontend-${each.key}" }
-
-  lifecycle {
-    precondition {
-      condition     = local.base.vpc_id == "vpc-04354398b0920234a" && length(local.base.public_subnets) == 2
-      error_message = "O state da rede precisa ser o da VPC existente, com duas sub-redes publicas."
-    }
-    precondition {
-      condition     = data.aws_iam_instance_profile.frontend.role_arn == "arn:aws:iam::967931808920:role/LabRole"
-      error_message = "O perfil existente deve usar a LabRole confirmada nesta conta."
-    }
-  }
 }
 
 resource "aws_lb" "public" {
@@ -50,6 +39,13 @@ resource "aws_lb" "public" {
   drop_invalid_header_fields = true
   desync_mitigation_mode     = "strictest"
   idle_timeout               = 300
+
+  lifecycle {
+    precondition {
+      condition     = length(local.base.public_subnets) == 2 && (!local.legacy_network || local.base.vpc_id == "vpc-04354398b0920234a")
+      error_message = "A borda exige duas sub-redes públicas e, no modo legado, a VPC original."
+    }
+  }
 }
 
 resource "aws_lb_target_group" "frontend" {

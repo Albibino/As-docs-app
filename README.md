@@ -12,6 +12,8 @@ separada em **frontend** (Nginx, EC2 em subnet pública) e **backend** (NestJS, 
 | `docker-compose.yml` | stack local com a mesma separação (abre em http://localhost:8080) |
 
 Passo a passo de nuvem: [`deploy/README.md`](deploy/README.md).
+Para criar uma infraestrutura nova na sua conta AWS, comece em
+[`infra/lab/README.md`](infra/lab/README.md). Esse fluxo não usa o state do grupo.
 
 ---
 

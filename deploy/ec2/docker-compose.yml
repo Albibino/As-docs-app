@@ -1,11 +1,17 @@
 # Frontend em cada EC2 da subnet pública (AZ A e AZ B).
-#   cp ../../frontend/.env.example .env   # ajuste BACKEND_URL e PUBLIC_APP_URL
+#   Prepare .env conforme deploy/README.md (imagem, NLB interno e origem HTTPS).
 #   docker compose up -d
 # Para apontar para outro backend: edite .env e `docker compose up -d` (sem rebuild).
 services:
   frontend:
-    image: ${FRONTEND_IMAGE:-ghcr.io/albibino/as-docs-frontend:latest}
-    env_file: .env
+    image: ${FRONTEND_IMAGE:?Informe a imagem do frontend pelo digest}
+    environment:
+      BACKEND_URL: ${BACKEND_URL:?Informe a URL do NLB interno}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:?Informe a URL pública HTTPS}
+      COLLAB_URL: ${COLLAB_URL:-}
+      FILE_UPLOAD_SIZE_LIMIT: ${FILE_UPLOAD_SIZE_LIMIT:-50mb}
+      FILE_IMPORT_SIZE_LIMIT: ${FILE_IMPORT_SIZE_LIMIT:-200mb}
+      CLIENT_MAX_BODY_SIZE: ${CLIENT_MAX_BODY_SIZE:-200m}
     ports:
       - '80:8080'   # o Security Group só libera a porta 80 para o SG do ALB
     restart: unless-stopped

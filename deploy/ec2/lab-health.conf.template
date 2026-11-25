@@ -1,0 +1,22 @@
+# Somente sondas no ALB HTTP do laboratório. Não serve SPA, login ou dados.
+server_tokens off;
+server {
+    listen ${NGINX_PORT};
+    server_name _;
+    resolver ${NGINX_LOCAL_RESOLVERS} valid=30s ipv6=off;
+    set $backend ${BACKEND_URL};
+
+    location = /healthz {
+        default_type text/plain;
+        return 200 "ok";
+    }
+
+    location = /api/health/live {
+        limit_except GET { deny all; }
+        proxy_pass $backend/api/health/live;
+        proxy_connect_timeout 3s;
+        proxy_read_timeout 5s;
+    }
+
+    location / { return 404; }
+}

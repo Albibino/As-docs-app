@@ -7,3 +7,9 @@
 **/coverage
 **/logs
 **/.cache
+infra/
+**/.terraform
+**/*.tfstate*
+**/*.tfplan
+**/*.tfvars
+**/*.tfvars.json

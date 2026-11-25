@@ -61,6 +61,10 @@ export class EnvironmentService {
     return this.configService.get<string>('OIDC_BACKCHANNEL_URL');
   }
 
+  isAwsLabHttpOidcEnabled(): boolean {
+    return this.configService.get<string>('OIDC_AWS_LAB_HTTP') === 'true';
+  }
+
   getOidcWebClient() {
     return {
       id: this.configService.getOrThrow<string>('OIDC_CLIENT_ID'),

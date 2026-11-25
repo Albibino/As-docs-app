@@ -71,6 +71,6 @@ resource "aws_lb_listener" "backend" {
 # Anexa o target group ao ASG ja gerenciado pelo EKS. O ASG registra novos nos
 # automaticamente; este state nao passa a gerenciar a escala nem o node group.
 resource "aws_autoscaling_attachment" "backend" {
-  autoscaling_group_name = one(one(data.aws_eks_node_group.backend.resources).autoscaling_groups).name
+  autoscaling_group_name = local.backend_autoscaling_group_name
   lb_target_group_arn    = aws_lb_target_group.backend.arn
 }

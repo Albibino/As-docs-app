@@ -35,6 +35,6 @@ output "existing_eks_role_arns" {
   description = "Funcoes existentes selecionadas para cluster e nos; nao sao criadas pelo codigo."
   value = {
     cluster = var.eks_cluster_role_arn
-    nodes   = var.eks_storage_enabled ? data.aws_iam_role.storage_nodes[0].arn : var.eks_node_role_arn
+    nodes   = local.effective_node_role_arn
   }
 }
