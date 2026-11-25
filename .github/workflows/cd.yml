@@ -1,0 +1,179 @@
+name: CD - As-docs-app (AWS Learner Lab)
+
+# Publica backend e frontend no ECR e implanta no AWS Learner Lab.
+# - Tag vX.Y.Z (release): deploy completo.
+# - Manual: build = só valida; publish = ECR; deploy = ECR + EKS/EC2
+#   (para deploy, digite DEPLOY na confirmação).
+# Publicação e deploy só acontecem com a variável do repositório
+# AS_DOCS_AWS_CD_ENABLED = true e a partir da main ou de uma tag v*.
+# Credenciais temporárias do Lab: secrets do repositório AWS_ACCESS_KEY_ID,
+# AWS_SECRET_ACCESS_KEY e AWS_SESSION_TOKEN (renovar a cada sessão).
+#
+# Por que o runner abre o endpoint do EKS: a API do cluster só aceita o IPv4 do
+# operador. No Learner Lab não é possível dar permissão de deploy a uma EC2 via
+# SSM (os nós usam a própria LabRole, cuja access entry é EC2_LINUX). Então o
+# job adiciona o IP do runner ao endpoint (~30s), aplica e remove no final,
+# mesmo em caso de falha, devolvendo o cluster à configuração do Terraform.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'build = validar; publish = ECR; deploy = ECR + EKS/EC2'
+        required: true
+        type: choice
+        default: build
+        options: [build, publish, deploy]
+      target:
+        description: 'O que publicar/implantar'
+        type: choice
+        default: all
+        options: [all, backend, frontend]
+      confirmation:
+        description: 'Para deploy, digite DEPLOY'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cd-as-docs-app
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: CD (${{ inputs.mode || 'deploy' }} / ${{ inputs.target || 'all' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      AWS_REGION: us-east-1
+      EKS_CLUSTER: ${{ vars.EKS_CLUSTER }}
+      TARGET: ${{ inputs.target || 'all' }}
+      REGISTRY: ${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Definir modo e validar confirmação
+        id: mode
+        env:
+          REQUESTED: ${{ github.event_name == 'push' && 'deploy' || inputs.mode }}
+          ENABLED: ${{ vars.AS_DOCS_AWS_CD_ENABLED }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          mode=$REQUESTED
+          if [ "$mode" != build ]; then
+            if [ "$ENABLED" != true ]; then
+              if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+                echo "::error::Publicação e deploy AWS desabilitados (AS_DOCS_AWS_CD_ENABLED != true)."
+                exit 1
+              fi
+              echo "::notice::CD AWS desabilitado; executando apenas o build."
+              mode=build
+            elif [ "$GITHUB_REF" != refs/heads/main ] && [[ $GITHUB_REF != refs/tags/v* ]]; then
+              echo "::error::Publicação permitida somente pela main ou por tag v*."
+              exit 1
+            elif [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && [ "$mode" = deploy ] && [ "$CONFIRMATION" != DEPLOY ]; then
+              echo "::error::Para deploy, digite DEPLOY."
+              exit 1
+            fi
+          fi
+          echo "Modo efetivo: $mode"
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+
+      - name: Credenciais AWS (sessão do Learner Lab)
+        if: steps.mode.outputs.mode != 'build'
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: Conferir conta
+        if: steps.mode.outputs.mode != 'build'
+        run: |
+          conta=$(aws sts get-caller-identity --query Account --output text)
+          if [ "$conta" != "${{ vars.AWS_ACCOUNT_ID }}" ]; then
+            echo "::error::Credenciais da conta $conta, esperado ${{ vars.AWS_ACCOUNT_ID }} (sessão do Lab expirada ou trocada?)."
+            exit 1
+          fi
+
+      - uses: aws-actions/amazon-ecr-login@7290e214a610b32bc0eef81748948b6d466a8783 # v2.2.0
+        if: steps.mode.outputs.mode != 'build'
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - name: Build/publicação do backend
+        id: backend
+        if: env.TARGET != 'frontend'
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          file: backend/Dockerfile
+          platforms: linux/amd64
+          push: ${{ steps.mode.outputs.mode != 'build' }}
+          provenance: false
+          tags: ${{ env.REGISTRY }}/as-docs-backend:${{ github.sha }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+      - name: Build/publicação do frontend
+        id: frontend
+        if: env.TARGET != 'backend'
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          file: frontend/Dockerfile
+          platforms: linux/amd64
+          push: ${{ steps.mode.outputs.mode != 'build' }}
+          provenance: false
+          tags: ${{ env.REGISTRY }}/as-docs-frontend:${{ github.sha }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
+
+      - name: Liberar IP do runner no endpoint do EKS
+        id: endpoint
+        if: steps.mode.outputs.mode == 'deploy' && env.TARGET != 'frontend'
+        run: |
+          ip=$(curl -fsS https://checkip.amazonaws.com | tr -d '[:space:]')
+          echo "cidr=$ip/32" >> "$GITHUB_OUTPUT"
+          bash .github/scripts/eks-endpoint.sh open "$ip/32"
+
+      - name: Implantar backend no EKS
+        if: steps.mode.outputs.mode == 'deploy' && env.TARGET != 'frontend'
+        env:
+          IMAGE: ${{ env.REGISTRY }}/as-docs-backend@${{ steps.backend.outputs.digest }}
+        run: |
+          aws eks update-kubeconfig --name "$EKS_CLUSTER" --region "$AWS_REGION"
+          kubectl -n as-docs set image deployment/as-docs-backend backend="$IMAGE"
+          kubectl -n as-docs rollout status deployment/as-docs-backend --timeout=10m
+
+      - name: Remover IP do runner do endpoint do EKS
+        if: always() && steps.endpoint.outputs.cidr != ''
+        run: bash .github/scripts/eks-endpoint.sh close "${{ steps.endpoint.outputs.cidr }}"
+
+      - name: Implantar frontend nas EC2 (SSM)
+        if: steps.mode.outputs.mode == 'deploy' && env.TARGET != 'backend'
+        working-directory: deploy
+        env:
+          EXPECTED_AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+          FRONTEND_IMAGE: ${{ env.REGISTRY }}/as-docs-frontend@${{ steps.frontend.outputs.digest }}
+          PUBLIC_APP_URL: ${{ vars.PUBLIC_APP_URL }}
+          BACKEND_URL: ${{ vars.BACKEND_URL }}
+          FRONTEND_INSTANCE_IDS: ${{ vars.FRONTEND_INSTANCE_IDS }}
+          FRONTEND_TARGET_GROUP_ARN: ${{ vars.FRONTEND_TARGET_GROUP_ARN }}
+        run: bash apply-aws-frontend.sh
+
+      - name: Smoke test
+        if: steps.mode.outputs.mode == 'deploy'
+        run: |
+          for i in $(seq 1 18); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "${{ vars.PUBLIC_APP_URL }}/api/health" || true)
+            echo "tentativa $i: /api/health -> $code"
+            [ "$code" = 200 ] && exit 0
+            sleep 10
+          done
+          echo "::error::Aplicação não respondeu 200 em /api/health."
+          exit 1
