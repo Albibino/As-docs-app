@@ -5,6 +5,7 @@ import { Text } from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
 import { useParams } from "react-router-dom";
+import { v4 as uuidv4 } from "uuid";
 import type { Editor } from "@tiptap/core";
 import {
   activeHistoryIdAtom,
@@ -149,7 +150,7 @@ export function useHistoryRestore() {
         historyId: activeHistoryData.id,
         title: liveTitle,
         content: liveContent,
-        requestId: crypto.randomUUID(),
+        requestId: uuidv4(),
       });
 
       if (targetTitle !== liveTitle) {

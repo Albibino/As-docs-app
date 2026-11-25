@@ -85,3 +85,9 @@ Foram verificados o login, o callback e a identidade da sessão para as duas
 contas pelo ALB, além de `/login`, `/healthz` e `/api/health/live` com `200`.
 O seletor legado retornou `410`; a administração, o endpoint de token e
 `/mcp` continuam privados. A integração da IA e o CD seguem separados.
+
+Ao abrir uma página editável no laboratório HTTP, o editor não deve depender
+de `crypto.randomUUID()` para montar o painel de escrita assistida. O frontend
+usa a biblioteca `uuid` já instalada para criar os identificadores. A correção
+não muda TLS, autenticação nem o requisito de contexto seguro de outras APIs
+do navegador, como `crypto.subtle`.

@@ -173,6 +173,11 @@ de `domain/operation-label.ts` usam o texto em português como chave de traduç�
 (chave em inglês). O comportamento visível, os seletores e os textos que
 `scripts/tcc-assisted-writing-ui.cjs` espera ficaram iguais.
 
+Os identificadores de sessão e dos blocos inseridos por propostas usam UUID v4
+via `uuid`, assim como a chave de requisição da restauração de histórico. No
+laboratório HTTP isso evita depender de `crypto.randomUUID()` para abrir o
+editor, sem mudar os formatos dos identificadores nem os hashes dos blocos.
+
 ## D13. Somente o núcleo AGPL-3.0
 
 **Decisão:** o repositório só contém código sob a AGPL-3.0. Foram removidos

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { v4 as uuidv4 } from "uuid";
 import {
   clearAssistedWritingSession,
   loadAssistedWritingSession,
@@ -8,7 +9,7 @@ import type { GenerationBlock } from "../domain/assisted-writing";
 import type { ChatTurn, UndoRecord, WritingSession } from "../types";
 
 function freshSession(): WritingSession {
-  return { id: crypto.randomUUID(), lastActive: Date.now(), history: [] };
+  return { id: uuidv4(), lastActive: Date.now(), history: [] };
 }
 
 /**
