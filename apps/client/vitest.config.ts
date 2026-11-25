@@ -13,5 +13,10 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: [],
+    coverage: {
+      provider: 'v8',
+      reporter: ['lcov', 'text'],
+      reportOnFailure: true,
+    },
   },
 });
