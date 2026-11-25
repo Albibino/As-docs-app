@@ -32,6 +32,7 @@ spec:
       labels:
         app: as-docs-backend
     spec:
+      automountServiceAccountToken: false
       containers:
       - env:
         - name: NODE_EXTRA_CA_CERTS
@@ -68,9 +69,11 @@ spec:
         resources:
           limits:
             memory: 1536Mi
+            ephemeral-storage: 2Gi
           requests:
             cpu: 250m
             memory: 512Mi
+            ephemeral-storage: 256Mi
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

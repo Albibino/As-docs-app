@@ -27,6 +27,7 @@ spec:
     metadata:
       labels: { app: redis }
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsUser: 999
         runAsGroup: 999
@@ -38,8 +39,8 @@ spec:
           ports:
             - containerPort: 6379
           resources:
-            requests: { cpu: 100m, memory: 256Mi }
-            limits: { memory: 1Gi }
+            requests: { cpu: 100m, memory: 256Mi, ephemeral-storage: 128Mi }
+            limits: { memory: 1Gi, ephemeral-storage: 1Gi }
           readinessProbe:
             exec: { command: ["redis-cli", "ping"] }
             periodSeconds: 10

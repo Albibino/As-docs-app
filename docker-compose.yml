@@ -34,7 +34,7 @@ services:
       APP_URL: '${APP_URL:-http://localhost:8080}'
       PORT: 3000
       APP_SECRET: '${APP_SECRET:?defina APP_SECRET no .env}'
-      DATABASE_URL: 'postgresql://asdocs:${DB_PASSWORD:-as-local-db}@db:5432/asdocs'
+      DATABASE_URL: 'postgresql://asdocs:${DB_PASSWORD:?defina DB_PASSWORD no .env}@db:5432/asdocs'
       REDIS_URL: 'redis://redis:6379/1'
       MAIL_DRIVER: log
       DISABLE_TELEMETRY: 'true'
@@ -83,7 +83,7 @@ services:
     environment:
       POSTGRES_DB: asdocs
       POSTGRES_USER: asdocs
-      POSTGRES_PASSWORD: '${DB_PASSWORD:-as-local-db}'
+      POSTGRES_PASSWORD: '${DB_PASSWORD:?defina DB_PASSWORD no .env}'
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U asdocs -d asdocs']
       interval: 5s
