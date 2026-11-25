@@ -1,5 +1,10 @@
 # Infraestrutura do As-docs
 
+Para provisionar em uma conta própria do AWS Academy, comece pelo
+[laboratório individual](lab/README.md). Ele não usa os states abaixo.
+
+## Implantação compartilhada anterior
+
 Atualizacao em 23/11/2026, conta 967931808920, regiao us-east-1.
 
 | Pasta | Estado e uso |

@@ -1,5 +1,9 @@
 # Infraestrutura aplicada — entrega para o deploy
 
+Registro histórico da conta compartilhada. Para publicar a aplicação agora,
+siga [Deploy na AWS](../../deploy/README.md): o NodePort e a correção do Nginx
+já estão no código, não reaplique o patch nem copie os endereços abaixo para o lab.
+
 Conta 967931808920, us-east-1. Borda aplicada com 20 adicoes, 0 alteracoes,
 0 exclusoes; tres testes simulados passaram e o plano posterior foi No changes.
 Verificacao real confirmou EC2/SSM, discos criptografados, LBs, WAF 403 e MCP 404.

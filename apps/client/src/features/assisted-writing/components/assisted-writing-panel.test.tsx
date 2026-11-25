@@ -163,6 +163,15 @@ describe("AssistedWritingPanel", () => {
     );
   });
 
+  it("abre o painel em HTTP sem crypto.randomUUID", async () => {
+    vi.stubGlobal("crypto", {
+      getRandomValues: crypto.getRandomValues.bind(crypto),
+    });
+    renderPanel(editor);
+    fireEvent.click(screen.getByLabelText("Open assisted writing"));
+    expect(await screen.findByText("How can I help with this page?")).toBeTruthy();
+  });
+
   it("sends the request with the page blocks and shows before/after", async () => {
     const operation = await replaceOperation(editor);
     mocks.stream.mockResolvedValue({ operations: [operation] });

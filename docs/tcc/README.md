@@ -15,3 +15,9 @@ serviço de IA é o repositório irmão `tcc-docs-ai`, que tem a sua própria pa
 | [08-roteiro-de-teste-manual.md](08-roteiro-de-teste-manual.md) | Passo a passo para testar pela interface, com respostas esperadas. |
 | [09-plano-oauth2-oidc.md](09-plano-oauth2-oidc.md) | Escopo e critérios de aceite de OIDC e OAuth 2.0 Client Credentials. |
 | [10-keycloak-local.md](10-keycloak-local.md) | Subir Keycloak no Compose local, provisionar as duas contas e ativar o login OIDC. |
+| [11-autoscaling-academy.md](11-autoscaling-academy.md) | Verificar permissões, métricas e grupos de escala no AWS Academy. |
+| [Deploy completo no AWS Academy Learner Lab](../../README.md#deploy-completo-no-aws-academy-learner-lab) | Clonar os dois repositórios, configurar a conta e subir a aplicação com um único `terraform apply`. |
+| [Laboratório individual na AWS](../../infra/lab/README.md) | Inicializar e provisionar rede, EKS, RDS e borda na própria conta, sem S3 compartilhado. |
+| [Deploy da aplicação na AWS](../../deploy/README.md) | Publicar imagens por digest, configurar OIDC e validar frontend e backend. |
+| [12-entrega-aws-ci-cd.md](12-entrega-aws-ci-cd.md) | Reaproveitamento do deploy do grupo e decisões pendentes para CI/CD no laboratório. |
+| [13-ia-oauth-aws.md](13-ia-oauth-aws.md) | Deploy da IA privada com Client Credentials a partir do state do laboratório. |

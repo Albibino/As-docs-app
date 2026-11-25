@@ -173,6 +173,11 @@ de `domain/operation-label.ts` usam o texto em português como chave de traduç�
 (chave em inglês). O comportamento visível, os seletores e os textos que
 `scripts/tcc-assisted-writing-ui.cjs` espera ficaram iguais.
 
+Os identificadores de sessão e dos blocos inseridos por propostas usam UUID v4
+via `uuid`, assim como a chave de requisição da restauração de histórico. No
+laboratório HTTP isso evita depender de `crypto.randomUUID()` para abrir o
+editor, sem mudar os formatos dos identificadores nem os hashes dos blocos.
+
 ## D13. Somente o núcleo AGPL-3.0
 
 **Decisão:** o repositório só contém código sob a AGPL-3.0. Foram removidos
@@ -262,3 +267,105 @@ não têm rota pública. O state da borda não recebe credenciais. O corte de lo
 do app exige os vínculos de conta do issuer AWS; o transporte para a IA não é
 ativado enquanto o trecho backend → IA não estiver em HTTPS. Ver
 [provisionamento e verificação](../../infra/edge/KEYCLOAK.md).
+
+O provisionador do Keycloak baixa o bundle público do RDS de `us-east-1`
+e aplica o ConfigMap usado pela conexão JDBC. O RDS continua exigindo TLS
+e o Keycloak continua validando o hostname (`verify-full`); não há certificado
+de cliente para gerar nesse trecho.
+
+## D18. Conta da sessão no backend S3 da rede e do EKS
+
+O backend da rede e do EKS não restringe o ID da conta da sessão; as permissões
+do S3 continuam obrigatórias. O bucket, a chave do state e a validação de
+`expected_account_id` no provider não mudaram. Uma implantação em outra conta
+deve usar state próprio e as roles do EKS dessa conta. Ver
+[Backend e colaboração](../../infra/terraform/README.md#backend-e-colaboração).
+
+## D19. Terraform individual para testes no AWS Academy
+
+Cada integrante aplica a raiz `infra/lab` em uma conta sem recursos do projeto
+e mantém um único state local. A raiz usa a identidade da sessão, vincula o
+state à conta do primeiro `apply` e permite uma trava de conta opcional antes
+do primeiro plano. Ela passa os outputs entre rede/EKS, RDS e borda e não lê
+nem migra o state S3 do grupo.
+
+No modo padrão `learner_lab`, a raiz descobre as roles EKS fornecidas pelo
+Academy, reutiliza `LabInstanceProfile` e não cria roles nem anexa políticas.
+O CSI usa a `LabRole` existente dos nós; a aplicação da política contra
+IMDS antes dos workloads é obrigatória. O RDS recebe uma senha efêmera via
+`TF_VAR_db_password`, sem depender da integração com o Secrets Manager.
+Em `managed`, uma conta que permite criar IAM continua podendo usar Pod
+Identity e senha gerenciada pelo RDS. Use states separados para os modos.
+A borda recebe o Auto Scaling Group do EKS nos dois casos. A implantação
+compartilhada mantém a configuração anterior. Ver o
+[roteiro e as restrições do laboratório](../../infra/lab/README.md).
+
+## D20. Deploy AWS separado do provisionamento
+
+O manifesto da aplicação adota o NodePort 30300 do NLB criado pelo Terraform.
+O deploy público usa HTTPS por padrão e OIDC do Keycloak, sem seletor legado.
+Frontend e backend são publicados como imagens separadas e implantados por
+digest, ambos associados ao SHA de origem. O fluxo manual fica em
+[Deploy na AWS](../../deploy/README.md); a futura automação da `main` pode
+reutilizá-lo sem atualizar o código diretamente nas EC2.
+
+## D21. CI da main e primeiro deploy do laboratório
+
+Reutilizar o CI do Pedro Muci para PRs e pushes na `main`. O CD publicará
+artefatos por digest e reutilizará o procedimento do primeiro deploy, separado
+do `terraform apply`. O laboratório terá duas contas descartáveis no Keycloak,
+com senha igual ao login; a exceção não vale para contas administrativas ou
+técnicas. Ver [reaproveitamento e pendências](12-entrega-aws-ci-cd.md).
+
+O modo opt-in `lab_full_deploy` substitui a separação descrita acima apenas
+para o Learner Lab descartável com state novo. O mesmo `apply` publica as
+imagens no ECR da conta e usa seus digests para implantar o app e a IA, após
+preparar o banco, o Keycloak e os vínculos OIDC. O fluxo por digests informados
+continua disponível para ambientes já provisionados. Ver
+[deploy integral](../../infra/lab/README.md#deploy-integral-em-um-learner-lab-novo).
+
+As tags imutáveis usam os manifestos de entradas de build versionados nos
+dois repositórios. Eles vêm do seletor de arquivos do publicador. Antes de
+reaproveitar ou publicar uma tag, o script compara o hash das entradas reais
+com o planejado; antes de construir, confere também a cópia entregue ao Docker.
+Configuração privada, como `.npmrc`, não entra em nenhum dos dois cálculos.
+
+## D22. Login HTTP opt-in no Learner Lab
+
+O dono autorizou login pelo DNS padrão HTTP do ALB para o laboratório
+descartável. O HTTPS continua padrão. A exceção não libera cadastro, seletor,
+administração ou emissão pública de tokens, nem altera o OAuth técnico da IA.
+Discovery, JWKS e troca de código do backend continuam no HTTPS privado do
+Keycloak. Ver [procedimento HTTP](../../infra/edge/KEYCLOAK.md#modo-http-do-learner-lab).
+
+## D23. Client Credentials no deploy individual da AWS
+
+Após o bootstrap, `infra/lab` pode implantar IA e backend por digest com a
+opção `ai_oauth`. Os `sub` técnicos e o workspace são descobertos na conta do
+laboratório; segredos não vão para o plano ou state. A IA é privada e o
+provisionador verifica autorização antes de ativar OAuth no backend. Quando
+o login HTTP já está autorizado no Learner Lab, o issuer anunciado continua
+o mesmo, mas troca de tokens e JWKS usam exclusivamente TLS privado. Não há
+fallback para HMAC. Ver [provisionamento e aceite](13-ia-oauth-aws.md).
+
+No laboratório individual, o mesmo apply pode instalar o backend e
+ativar `ai_oauth`. Se faltar o Secret técnico, um pod efêmero com acesso
+privado ao Keycloak valida os clientes do realm e transfere as duas
+credenciais existentes ao Kubernetes sem rotacionar nem gravar no state.
+
+## D24. Deploy do app pelo apply do laboratório
+
+Na raiz `infra/lab`, `app_deploy` fixa os digests de frontend e backend no ECR
+da conta. Quando configurado, o `apply` espera o Keycloak e o armazenamento,
+implanta Redis e backend, executa `ai_oauth` se configurado e atualiza as duas
+EC2 por SSM, uma por vez. As sondas do app e do ALB verificam a entrega; isso
+não substitui a validação do callback OIDC. Imagens, credenciais e vínculos do
+realm continuam pré-requisitos; a implantação compartilhada não muda.
+
+## D25. Entrega da chave OpenAI no EKS pelo apply
+
+A raiz `infra/lab` pode receber a chave de um arquivo privado ignorado pelo
+Git. A variável é sensível e efêmera; o Secret Kubernetes é aplicado via
+stdin, sem registrar o valor no plano ou state. A revisão não secreta permite
+atualizar o Secret de propósito. A entrega da chave não habilita a IA nem
+substitui as credenciais técnicas do Keycloak.

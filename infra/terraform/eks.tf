@@ -111,7 +111,7 @@ resource "aws_launch_template" "eks_nodes" {
 resource "aws_eks_node_group" "private" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = var.eks_storage_enabled ? "${var.project_name}-private-storage" : "${var.project_name}-private"
-  node_role_arn   = var.eks_storage_enabled ? data.aws_iam_role.storage_nodes[0].arn : var.eks_node_role_arn
+  node_role_arn   = local.effective_node_role_arn
   subnet_ids      = [for zone in sort(keys(local.zones)) : aws_subnet.private[zone].id]
   version         = var.eks_version
   ami_type        = "AL2023_x86_64_STANDARD"

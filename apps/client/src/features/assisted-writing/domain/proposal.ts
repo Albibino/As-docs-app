@@ -1,6 +1,7 @@
 import type { JSONContent } from "@tiptap/core";
 import { Fragment, type Node as ProseMirrorNode } from "@tiptap/pm/model";
 import type { EditorState, Transaction } from "@tiptap/pm/state";
+import { v4 as uuidv4 } from "uuid";
 import {
   EDITABLE_BLOCK_TYPES,
   hashBlock,
@@ -127,7 +128,7 @@ export async function buildProposalTransaction(
           state.schema,
           operation.content as unknown[],
         );
-        const insertedId = crypto.randomUUID();
+        const insertedId = uuidv4();
         const inserted = type.create(
           {
             ...operation.attrs,

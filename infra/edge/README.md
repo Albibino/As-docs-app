@@ -6,6 +6,21 @@ do apply. Ver evidencias/2026-11-23-aplicacao-borda.md. A verificacao pos-apply
 passou e o plano seguinte retornou No changes. Usa provider AWS 6.73.0 fixado e
 Terraform 1.17.2. Formato HCL e sintaxes Bash/Python/YAML tambem foram conferidos.
 
+## Uso direto ou pela raiz portátil
+
+- **Legado (`infra/edge`):** sem `network_outputs`, usa o backend S3
+  `as-docs/edge.tfstate` e lê os outputs de `as-docs/terraform.tfstate` na
+  conta original. O perfil padrão continua `LabInstanceProfile` com `LabRole`.
+- **Portátil (`infra/lab`):** a raiz passa `network_outputs` da própria rede
+  e do EKS, `expected_account_id` e `frontend_instance_profile_name`. A borda
+  não lê o state S3 legado; seus recursos ficam no state da raiz portátil.
+  As chaves das duas sub-redes públicas precisam ser conhecidas no plano.
+  Use um perfil existente com role da mesma conta e permissão para SSM.
+  O ACM, se informado, deve ser dessa conta e de `us-east-1`.
+
+Os comandos CloudShell e os helpers `preparar-borda.py` e `verificar-borda.py`
+abaixo são específicos da implantação legada.
+
 ## O que o plano acrescenta
 
 Em HTTP temporario, sao esperadas 20 adicoes, nenhuma alteracao ou exclusao de
@@ -96,6 +111,10 @@ Usa politica TLS 1.2/1.3. Atualizar PUBLIC_APP_URL/APP_URL e os redirects do Key
 O DNS AWS do ALB nao equivale a dominio proprio com certificado publico valido.
 
 ## Entrega ao Muci
+
+Esta seção registra a entrega original. Para publicar agora, siga
+[Deploy na AWS](../../deploy/README.md). O manifesto já adota o NodePort e o
+template do Nginx já contém a correção; não reaplique o patch histórico.
 
 1. Usar os outputs frontend_instances, backend_url, public_app_url e integration.
    BACKEND_URL nas EC2 recebe backend_url. PUBLIC_APP_URL nas EC2 e APP_URL no

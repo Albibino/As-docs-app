@@ -36,7 +36,7 @@ mock_provider "aws" {
 
 # Evita ler S3 mesmo durante os testes simulados do provider AWS.
 override_data {
-  target          = data.terraform_remote_state.network
+  target          = data.terraform_remote_state.network[0]
   override_during = plan
   values = {
     outputs = {
@@ -60,6 +60,15 @@ override_data {
 # Planos simulados: mocks conhecidos no plan, sem recursos AWS reais.
 run "duas_ec2_e_encaminhamento_privado_sem_controller" {
   command = plan
+
+  assert {
+    condition = (
+      length(data.terraform_remote_state.network) == 1 &&
+      aws_lb_target_group.frontend.vpc_id == "vpc-04354398b0920234a" &&
+      aws_instance.frontend["us-east-1a"].iam_instance_profile == "LabInstanceProfile"
+    )
+    error_message = "Sem inputs portáteis, a borda deve preservar o state e o perfil legados."
+  }
 
   assert {
     condition = length(aws_instance.frontend) == 2 && alltrue([
@@ -122,4 +131,62 @@ run "rejeita_certificado_de_outra_conta" {
     acm_certificate_arn = "arn:aws:acm:us-east-1:111111111111:certificate/01234567-89ab-cdef-0123-456789abcdef"
   }
   expect_failures = [var.acm_certificate_arn]
+}
+
+run "rede_portatil_na_segunda_conta_com_https_e_keycloak" {
+  command = plan
+  variables {
+    expected_account_id            = "222222222222"
+    frontend_instance_profile_name = "PortableProfile"
+    public_hostname                = "docs.laboratorio.test"
+    acm_certificate_arn            = "arn:aws:acm:us-east-1:222222222222:certificate/01234567-89ab-cdef-0123-456789abcdef"
+    keycloak_enabled               = true
+    keycloak_db_host               = "as-docs-postgres.fixture.us-east-1.rds.amazonaws.com"
+    network_outputs = {
+      vpc_id                        = "vpc-02222222222222222"
+      eks_cluster_name              = "portatil-eks"
+      eks_node_group_name           = "portatil-nos"
+      eks_autoscaling_group_name    = "portatil-asg"
+      eks_cluster_security_group_id = "sg-02222222222222222"
+      public_subnets = {
+        us-east-1a = { id = "subnet-01111111111111111", cidr = "10.1.0.0/24" }
+        us-east-1b = { id = "subnet-02222222222222222", cidr = "10.1.1.0/24" }
+      }
+      private_subnets = {
+        us-east-1a = { id = "subnet-03333333333333333" }
+        us-east-1b = { id = "subnet-04444444444444444" }
+      }
+      security_group_ids = { alb = "sg-03333333333333333", frontend = "sg-04444444444444444" }
+    }
+  }
+
+  override_data {
+    target = data.aws_iam_instance_profile.frontend
+    values = { role_arn = "arn:aws:iam::222222222222:role/lab/PortableRole" }
+  }
+
+  assert {
+    condition = (
+      length(data.terraform_remote_state.network) == 0 &&
+      length(data.aws_eks_node_group.backend) == 0 &&
+      aws_autoscaling_attachment.backend.autoscaling_group_name == "portatil-asg" &&
+      aws_autoscaling_attachment.keycloak[0].autoscaling_group_name == "portatil-asg" &&
+      aws_lb_target_group.frontend.vpc_id == var.network_outputs.vpc_id &&
+      aws_instance.frontend["us-east-1a"].subnet_id == var.network_outputs.public_subnets["us-east-1a"].id &&
+      aws_instance.frontend["us-east-1a"].iam_instance_profile == var.frontend_instance_profile_name &&
+      aws_lb.backend.subnets == toset([for subnet in var.network_outputs.private_subnets : subnet.id]) &&
+      output.integration.managed_node_group_name == var.network_outputs.eks_node_group_name
+    )
+    error_message = "A borda portátil deve usar os outputs fornecidos e o perfil selecionado, sem leitura do state legado."
+  }
+
+  assert {
+    condition = (
+      aws_lb_listener.https[0].certificate_arn == var.acm_certificate_arn &&
+      terraform_data.keycloak[0].input.account == var.expected_account_id &&
+      terraform_data.keycloak[0].input.cluster == var.network_outputs.eks_cluster_name &&
+      strcontains(terraform_data.keycloak[0].input.manifest, "10.1.0.0/24,10.1.1.0/24")
+    )
+    error_message = "TLS e Keycloak devem usar o certificado, a conta, o cluster e as sub-redes do laboratório."
+  }
 }

@@ -1,13 +1,11 @@
-# Configuração NÃO sensível do backend. Para trocar banco, IA ou URLs:
-#   kubectl -n as-docs edit configmap as-docs-backend-config
-#   kubectl -n as-docs rollout restart deployment as-docs-backend
+# Base não sensível. Renderize com deploy/render-aws-backend.sh antes do apply.
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: as-docs-backend-config
   namespace: as-docs
 data:
-  APP_URL: "https://docs.exemplo.com"          # domínio público do ALB
+  OIDC_ENABLED: "true"                         # sem issuer/cliente, o boot falha
   PORT: "3000"
   JWT_TOKEN_EXPIRES_IN: "30d"
   REDIS_URL: "redis://redis.as-docs.svc.cluster.local:6379/1"
