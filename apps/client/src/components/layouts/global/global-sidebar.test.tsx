@@ -1,4 +1,6 @@
+
 import { MantineProvider } from "@mantine/core";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
@@ -68,12 +70,22 @@ beforeAll(() => {
 });
 
 function renderSidebar(collapsed = false) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
   return render(
-    <MantineProvider>
-      <MemoryRouter initialEntries={["/home"]}>
-        <GlobalSidebar collapsed={collapsed} />
-      </MemoryRouter>
-    </MantineProvider>,
+    <QueryClientProvider client={queryClient}>
+      <MantineProvider>
+        <MemoryRouter initialEntries={["/home"]}>
+          <GlobalSidebar collapsed={collapsed} />
+        </MemoryRouter>
+      </MantineProvider>
+    </QueryClientProvider>,
   );
 }
 
@@ -95,11 +107,13 @@ describe("GlobalSidebar", () => {
     renderSidebar();
 
     const links = screen.getAllByRole("link");
+
     expect(
       links
         .find((link) => link.textContent?.includes("Engineering"))
         ?.getAttribute("href"),
     ).toBe("/spaces?teamId=team-1");
+
     expect(screen.getByRole("heading", { name: "Teams" })).not.toBeNull();
     expect(screen.queryByText("My spaces")).toBeNull();
   });
