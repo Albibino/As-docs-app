@@ -1,0 +1,53 @@
+name: CI - As-docs-app
+
+on:
+  push:
+    branches:
+      - main
+      - feature/aws-academy-deploy
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Testes, lint e build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Instalar pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.15.1
+          run_install: false
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Build dos projetos
+        run: pnpm run build
+
+      - name: Testes do backend
+        run: pnpm --filter ./apps/server exec jest --ci --runInBand
+
+      - name: Testes do frontend
+        run: pnpm --filter ./apps/client exec vitest run
+
+      - name: ESLint do backend (sem --fix)
+        run: pnpm --filter ./apps/server exec eslint "{src,apps,libs,test}/**/*.ts" --no-error-on-unmatched-pattern
+
+      - name: ESLint do frontend
+        run: pnpm --filter ./apps/client exec eslint .
