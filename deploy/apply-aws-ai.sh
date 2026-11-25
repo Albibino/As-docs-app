@@ -29,6 +29,8 @@ openssl x509 -in "$work/keycloak-ca.pem" -noout >/dev/null
 if [[ ${AI_PROVIDER_MODE:?} == openai ]]; then
   "${k[@]}" get secret as-docs-ai-openai -o name >/dev/null
 fi
+bootstrap_image=$("${k[@]}" get deployment as-docs-backend -o 'jsonpath={.spec.template.spec.containers[?(@.name=="backend")].image}')
+bash "$root/deploy/import-aws-ai-clients.sh" "$context" "$bootstrap_image"
 DOCS_AI_OAUTH_ENABLED=true bash "$root/deploy/render-aws-backend.sh" > "$work/backend.yaml"
 
 probe() {

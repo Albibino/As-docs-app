@@ -16,7 +16,19 @@ eks_api_access_cidrs = ["192.0.2.5/32"]
 # Desabilitar o CSI impede o provisionamento dos volumes gp3 da aplicação.
 # eks_storage_enabled = false
 
-# Depois de preparar Keycloak, Redis, backend e Secrets (ver docs/tcc/13-ia-oauth-aws.md):
+# Deploy integral somente para um Learner Lab descartável com state novo:
+# lab_full_deploy = true
+# lab_ai_checkout = "../../../As-docs-ai" # padrão: repositório irmão
+# Requer openai.auto.tfvars. Não combine com app_deploy/ai_oauth abaixo.
+
+# Deploy por digests preexistentes, depois do bootstrap manual:
+# keycloak_enabled  = true
+# keycloak_lab_http = true # somente laboratório descartável, sem domínio/ACM
+# app_deploy = {
+#   backend_image  = "111122223333.dkr.ecr.us-east-1.amazonaws.com/as-docs-backend@sha256:<digest>"
+#   frontend_image = "111122223333.dkr.ecr.us-east-1.amazonaws.com/as-docs-frontend@sha256:<digest>"
+# }
+# Para incluir IA, prepare os Secrets e use o mesmo digest de backend (docs/tcc/13-ia-oauth-aws.md):
 # ai_oauth = {
 #   backend_image = "<registro>/as-docs-backend@sha256:<digest>"
 #   ai_image      = "<registro>/as-docs-ai@sha256:<digest>"

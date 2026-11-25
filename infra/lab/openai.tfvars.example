@@ -1,0 +1,4 @@
+# Copie para openai.auto.tfvars com permissão 600. Esse arquivo real é ignorado pelo Git.
+# Preencha a chave do projeto no arquivo copiado. Nunca coloque o valor neste exemplo.
+openai_secret_revision = 1
+openai_api_key         = ""

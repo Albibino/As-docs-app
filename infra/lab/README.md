@@ -34,6 +34,52 @@ Revise a conta, a região e os recursos propostos. Depois, execute `terraform ap
 
 ## Publicação da aplicação e encerramento
 
+### Deploy integral em um Learner Lab novo
+
+O modo `lab_full_deploy = true` é para um laboratório descartável, com state
+novo e sem recursos anteriores do projeto. Não o habilite para migrar uma
+instalação existente. Clone a revisão compatível de `As-docs-ai` ao lado deste
+repositório (ou ajuste `lab_ai_checkout`) e use um shell com AWS CLI,
+`kubectl`, Docker com suporte a build `linux/amd64`, Python 3, OpenSSL, Git e
+curl. O mesmo shell deve alcançar a API do EKS a partir do IPv4 `/32`
+informado em `eks_api_access_cidrs`.
+
+Ative `lab_full_deploy` no `terraform.tfvars`, configure `openai.auto.tfvars`
+como abaixo e deixe `app_deploy` e `ai_oauth` sem valor. Use os comandos de
+inicialização e provisionamento acima: não há uma etapa separada de push das
+imagens ou de criação dos Secrets. O `apply` publica as três imagens no ECR
+da própria conta, prepara PostgreSQL e Keycloak, implanta backend e IA no
+EKS e o frontend nas duas EC2. Use `terraform output -raw public_app_url`
+para obter o endereço. Esse modo usa o DNS HTTP do ALB e contas de teste;
+não o use para dados reais. O acesso administrativo do Keycloak permanece
+privado.
+
+As tags são automáticas. Ao manter o código, só regenere o manifesto
+versionado `deploy/aws-lab-build-inputs.json` do repositório afetado se a
+lista de entradas de build mudar (por exemplo, ao adicionar ou remover um
+arquivo-fonte). Da raiz do app, `bash deploy/publish-aws-lab-images.sh
+--build-manifest app .` imprime a lista do app; use `--build-manifest ai
+../As-docs-ai` para a lista da IA. Revise e salve a saída no repositório
+correspondente. Um clone da revisão publicada já traz os dois manifestos.
+
+### Deploy com imagens já publicadas
+
+Para publicar pelo próprio `apply`, configure `app_deploy` em `terraform.tfvars`
+com os digests de backend e frontend do ECR desta conta (`lab.tfvars.example`).
+Prepare o banco e o usuário do app, o Secret `as-docs/as-docs-backend-secret`
+e o cliente OIDC antes de habilitar o deploy. O Terraform não recebe esses
+segredos nem compila imagens. Com a configuração ativa, o `apply` aguarda o
+Keycloak e instala Redis e backend no EKS, depois atualiza as duas EC2 por SSM
+e verifica as sondas. Para incluir a IA, configure também `ai_oauth` com o
+mesmo digest de backend e os pré-requisitos de OAuth. Sem `app_deploy`, as EC2
+podem subir sem contêineres e a URL do app devolver 502.
+
+Para criar também o Secret da OpenAI, copie `openai.tfvars.example` para
+`openai.auto.tfvars` **em `infra/lab`**, com permissão `0600`. Preencha
+`openai_api_key` e deixe `openai_secret_revision = 1` na primeira entrega.
+O Terraform carrega o arquivo automaticamente, sem `-var-file` adicional.
+O valor não vai para o Git, plano ou state. Isso não ativa `ai_oauth` sozinho.
+
 - `terraform output` fornece o cluster EKS, a conexão do RDS, a URL pública e o endpoint privado do backend. O ARN do segredo gerenciado só aparece em `managed`. Use a senha administrativa apenas para preparar o banco e crie credenciais específicas para os workloads. Siga [Deploy na AWS](../../deploy/README.md) para o primeiro deploy. Depois, a opção [`ai_oauth`](../../docs/tcc/13-ia-oauth-aws.md) implanta a IA privada e ativa Client Credentials no backend sem publicar imagens nem tocar no frontend.
 - O CSI fica habilitado por padrão. No Learner Lab, ele usa as permissões da `LabRole` dos nós, sem o isolamento de Pod Identity. Depois do `apply`, confirme o contexto `kubectl` e aplique [`storage-gp3.yaml`](../terraform/storage-gp3.yaml) **antes** de subir workloads no namespace `as-docs`: o manifesto configura a classe `gp3` e a política de egress contra IMDS. Respeite as limitações descritas na [Etapa 05](../terraform/ETAPA_05_VOLUMES.md), incluindo a janela inicial do CNI. Se não precisar de PVCs, você pode usar `eks_storage_enabled = false` em uma implantação nova. Volumes com `Retain` podem ficar cobrando após a remoção do workload.
 - Keycloak fica desativado por padrão. Sua ativação exige domínio, DNS, certificado ACM e preparação do banco e do cluster segundo `infra/edge/KEYCLOAK.md`; use os dados da sua conta e não os IDs ou contextos históricos da conta compartilhada.

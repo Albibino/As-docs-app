@@ -10,7 +10,7 @@ A CI do app foi adaptada de `9c7747c` e inclui as correções de fixture de `2df
 
 ## Decisões de ambiente
 
-O ALB já recebe um DNS da AWS, suficiente para verificar a saúde por HTTP sem configurar domínio ou certificado. Essa verificação separa falha de deploy de configuração de acesso público; não use HTTP para validar login ou expor o seletor legado. DNS customizado e ACM não resolvem o 502 dos destinos sem aplicação.
+O ALB já recebe um DNS da AWS, suficiente para verificar a saúde por HTTP sem configurar domínio ou certificado. Essa verificação separa falha de deploy de configuração de acesso público; não use HTTP fora do modo descartável autorizado, nem exponha o seletor legado. DNS customizado e ACM não resolvem o 502 dos destinos sem aplicação. Na raiz individual, configure `app_deploy` para que o mesmo `terraform apply` também implante as imagens. Consulte o [README do laboratório](../../infra/lab/README.md).
 
 1. **HTTPS diretamente no ALB (se for o caminho escolhido):** usar um hostname exclusivo em uma zona autorizada. Route 53 é uma opção inteiramente na AWS; ClouDNS foi a escolha do grupo, não um requisito. Automatizar o apontamento para o ALB e, separadamente, a validação do ACM; aguardar `ISSUED` e informar ao `infra/lab` o ARN do certificado da conta em `us-east-1`.
 2. **Registro:** preferir ECR da conta do laboratório, confirmando criação e push para o publicador e pull pelos nós EKS e perfis das EC2. Sem permissões, usar um registro já autorizado com o mesmo contrato. Registrar os digests do frontend, backend e IA junto aos SHAs de origem.
@@ -85,6 +85,10 @@ Foram verificados o login, o callback e a identidade da sessão para as duas
 contas pelo ALB, além de `/login`, `/healthz` e `/api/health/live` com `200`.
 O seletor legado retornou `410`; a administração, o endpoint de token e
 `/mcp` continuam privados. A integração da IA e o CD seguem separados.
+
+No laboratório individual, os nomes de login descartáveis no Keycloak são
+`usuario-1` e `usuario-2`, com hífen. A correção dos nomes não altera os UUIDs
+do Keycloak nem os vínculos existentes com as contas locais do app.
 
 Ao abrir uma página editável no laboratório HTTP, o editor não deve depender
 de `crypto.randomUUID()` para montar o painel de escrita assistida. O frontend

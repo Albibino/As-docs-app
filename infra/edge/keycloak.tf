@@ -25,6 +25,12 @@ variable "keycloak_ai_oauth" {
   default     = false
 }
 
+variable "keycloak_bootstrap_id" {
+  description = "Ordena o primeiro deploy do Keycloak após o bootstrap opcional do laboratório."
+  type        = string
+  default     = null
+}
+
 variable "keycloak_db_host" {
   description = "Endpoint do RDS existente (sem porta nem protocolo); banco e usuário exclusivos keycloak."
   type        = string
@@ -89,12 +95,12 @@ resource "terraform_data" "keycloak" {
     cluster  = local.base.eks_cluster_name
     account  = var.expected_account_id
   }
-  triggers_replace = {
+  triggers_replace = merge({
     manifest = sha256(local.keycloak_manifest)
     script   = filesha256("${path.module}/apply-keycloak.sh")
     cluster  = local.base.eks_cluster_name
     account  = var.expected_account_id
-  }
+  }, var.keycloak_bootstrap_id != null ? { bootstrap = var.keycloak_bootstrap_id } : {})
 
   lifecycle {
     precondition {

@@ -1,6 +1,6 @@
 # Deploy manual na AWS
 
-O Terraform prepara `ALB público → Nginx nas duas EC2 → NLB privado → NodePort 30300 → backend no EKS`. O backend usa Redis 8 e RDS. O primeiro `apply` não publica a aplicação. No laboratório individual, use somente os outputs de `infra/lab`; a entrega histórica ao Muci contém dados de outra conta. Após o bootstrap, use [IA com Client Credentials](../docs/tcc/13-ia-oauth-aws.md) para o deploy opt-in dos dois serviços em OAuth.
+O Terraform prepara `ALB público → Nginx nas duas EC2 → NLB privado → NodePort 30300 → backend no EKS`. O backend usa Redis 8 e RDS. No laboratório individual, configure [`app_deploy`](../infra/lab/README.md#publicação-da-aplicação-e-encerramento) para publicar no mesmo `apply` após preparar as credenciais. Sem essa opção, a aplicação não é publicada. Use somente os outputs de `infra/lab`; a entrega histórica ao Muci contém dados de outra conta. Para incluir a IA, veja [Client Credentials](../docs/tcc/13-ia-oauth-aws.md).
 
 Para o laboratório descartável sem domínio nem ACM, siga o [modo HTTP do Learner Lab](../infra/edge/KEYCLOAK.md#modo-http-do-learner-lab). O restante deste roteiro descreve o modo HTTPS padrão.
 

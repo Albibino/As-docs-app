@@ -268,6 +268,11 @@ do app exige os vínculos de conta do issuer AWS; o transporte para a IA não é
 ativado enquanto o trecho backend → IA não estiver em HTTPS. Ver
 [provisionamento e verificação](../../infra/edge/KEYCLOAK.md).
 
+O provisionador do Keycloak baixa o bundle público do RDS de `us-east-1`
+e aplica o ConfigMap usado pela conexão JDBC. O RDS continua exigindo TLS
+e o Keycloak continua validando o hostname (`verify-full`); não há certificado
+de cliente para gerar nesse trecho.
+
 ## D18. Conta da sessão no backend S3 da rede e do EKS
 
 O backend da rede e do EKS não restringe o ID da conta da sessão; as permissões
@@ -312,6 +317,19 @@ do `terraform apply`. O laboratório terá duas contas descartáveis no Keycloak
 com senha igual ao login; a exceção não vale para contas administrativas ou
 técnicas. Ver [reaproveitamento e pendências](12-entrega-aws-ci-cd.md).
 
+O modo opt-in `lab_full_deploy` substitui a separação descrita acima apenas
+para o Learner Lab descartável com state novo. O mesmo `apply` publica as
+imagens no ECR da conta e usa seus digests para implantar o app e a IA, após
+preparar o banco, o Keycloak e os vínculos OIDC. O fluxo por digests informados
+continua disponível para ambientes já provisionados. Ver
+[deploy integral](../../infra/lab/README.md#deploy-integral-em-um-learner-lab-novo).
+
+As tags imutáveis usam os manifestos de entradas de build versionados nos
+dois repositórios. Eles vêm do seletor de arquivos do publicador. Antes de
+reaproveitar ou publicar uma tag, o script compara o hash das entradas reais
+com o planejado; antes de construir, confere também a cópia entregue ao Docker.
+Configuração privada, como `.npmrc`, não entra em nenhum dos dois cálculos.
+
 ## D22. Login HTTP opt-in no Learner Lab
 
 O dono autorizou login pelo DNS padrão HTTP do ALB para o laboratório
@@ -329,3 +347,25 @@ provisionador verifica autorização antes de ativar OAuth no backend. Quando
 o login HTTP já está autorizado no Learner Lab, o issuer anunciado continua
 o mesmo, mas troca de tokens e JWKS usam exclusivamente TLS privado. Não há
 fallback para HMAC. Ver [provisionamento e aceite](13-ia-oauth-aws.md).
+
+No laboratório individual, o mesmo apply pode instalar o backend e
+ativar `ai_oauth`. Se faltar o Secret técnico, um pod efêmero com acesso
+privado ao Keycloak valida os clientes do realm e transfere as duas
+credenciais existentes ao Kubernetes sem rotacionar nem gravar no state.
+
+## D24. Deploy do app pelo apply do laboratório
+
+Na raiz `infra/lab`, `app_deploy` fixa os digests de frontend e backend no ECR
+da conta. Quando configurado, o `apply` espera o Keycloak e o armazenamento,
+implanta Redis e backend, executa `ai_oauth` se configurado e atualiza as duas
+EC2 por SSM, uma por vez. As sondas do app e do ALB verificam a entrega; isso
+não substitui a validação do callback OIDC. Imagens, credenciais e vínculos do
+realm continuam pré-requisitos; a implantação compartilhada não muda.
+
+## D25. Entrega da chave OpenAI no EKS pelo apply
+
+A raiz `infra/lab` pode receber a chave de um arquivo privado ignorado pelo
+Git. A variável é sensível e efêmera; o Secret Kubernetes é aplicado via
+stdin, sem registrar o valor no plano ou state. A revisão não secreta permite
+atualizar o Secret de propósito. A entrega da chave não habilita a IA nem
+substitui as credenciais técnicas do Keycloak.

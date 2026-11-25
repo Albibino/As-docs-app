@@ -20,7 +20,11 @@ ser dessa conta.
 | Secret `as-docs-keycloak-db` | Chave `password` da role `keycloak` no RDS |
 | Secret TLS `as-docs-keycloak-tls` | `tls.crt` e `tls.key` exclusivos do pod; inclua no certificado o nome usado para administração privada, por exemplo `localhost` |
 | Secret `as-docs-keycloak-bootstrap` | `username` e `password` temporários para inicializar um banco vazio; retire após provisionar o acesso administrativo permanente e reiniciar o Deployment |
-| ConfigMap `as-docs-keycloak-rds-ca` | Chave `ca.pem` com o bundle do RDS |
+
+O provisionador baixa o bundle público oficial do RDS de `us-east-1` com
+`curl` e aplica o ConfigMap `as-docs-keycloak-rds-ca` (chave `ca.pem`) antes
+do Deployment. Não crie esse ConfigMap manualmente nem emita um certificado
+de cliente para o RDS.
 
 O navegador valida o ACM, o ALB cifra novamente até a porta 8443, e o Keycloak valida certificado e hostname do RDS (`verify-full`). O ALB não valida o certificado do destino: esse trecho depende dos SGs e da rede privada. O WAF bloqueia cabeçalhos de proxy fornecidos pelo cliente no caminho `/id/`; não coloque outro proxy que envie esses cabeçalhos antes do ALB sem revisar essa política.
 
@@ -53,7 +57,7 @@ encaminhados. O navegador usa HTTP, mas Kubernetes, RDS e o backchannel do
 backend continuam com as configurações TLS existentes. Não use contas reais
 ou documentos sensíveis nesse modo.
 
-1. Prepare os Secrets e a CA do RDS como no fluxo acima. O certificado TLS do
+1. Prepare os Secrets como no fluxo acima. O certificado TLS do
    pod deve cobrir `as-docs-keycloak.as-docs-identity.svc.cluster.local`.
    No namespace `as-docs`, crie o ConfigMap `as-docs-aws-lab-trust` com a chave
    `ca.pem` contendo a CA do Keycloak e a CA regional do RDS, não chaves

@@ -10,15 +10,19 @@ web nem a credencial delegada do MCP usam esses tokens técnicos.
 ## Primeiro deploy
 
 1. Prepare a conta pelo [roteiro de `infra/lab`](../../infra/lab/README.md) e
-   suba Redis, Keycloak e backend conforme [deploy AWS](../../deploy/README.md),
-   ainda sem `ai_oauth`. O backend precisa estar `Ready` e ter executado o seed
-   do único workspace. A opção de HTTP público para login é exclusiva do
+   prepare os Secrets e habilite `app_deploy` conforme [deploy AWS](../../deploy/README.md).
+   O mesmo `apply` pode executar `ai_oauth`: ele aguarda Redis, Keycloak e
+   o backend com o seed do único workspace. A opção de HTTP público é exclusiva do
    Learner Lab descartável e não desativa TLS na comunicação técnica.
 2. O realm novo já importa `docs-app-indexer` e `docs-app-assistant`, com as
    contas de serviço, escopos e audiência `docs-ai`. Se o realm já existir,
    confira os clientes na administração **privada**: a importação de startup
-   não atualiza um banco persistido. Transfira os dois segredos técnicos para
-   o Secret `as-docs/as-docs-backend-ai-oauth` com exatamente as chaves
+   não atualiza um banco persistido. O `apply` preserva o Secret técnico quando
+   existe. Se estiver ausente e o bootstrap administrativo do Keycloak estiver
+   disponível, valida os clientes no HTTPS privado e transfere as credenciais
+   vigentes sem rotacionar. O pod e a política temporários são removidos ao
+   final. Sem o bootstrap, prepare o Secret `as-docs/as-docs-backend-ai-oauth`
+   com exatamente as chaves
    `OIDC_CLIENT_SECRET_INDEXER` e `OIDC_CLIENT_SECRET_ASSISTANT`. Não use
    segredos de outro ambiente. Use arquivo protegido (`0600`, fora do Git) e
    `kubectl --context "$CTX" -n as-docs create secret generic as-docs-backend-ai-oauth --from-env-file="$AI_CLIENT_SECRET_FILE"`
@@ -28,8 +32,15 @@ web nem a credencial delegada do MCP usam esses tokens técnicos.
    Keycloak e do RDS. O certificado do Keycloak deve ter SAN para
    `as-docs-keycloak.as-docs-identity.svc.cluster.local`. O script não pula
    verificação de certificado nem usa o ALB para trocar credenciais.
-4. Para uso completo, disponibilize `OPENAI_API_KEY` no Secret
-   `as-docs/as-docs-ai-openai` da própria implantação. O modo `diagnostic`
+4. Para uso completo, copie `infra/lab/openai.tfvars.example` para
+   `infra/lab/openai.auto.tfvars`, mantenha permissão `0600` e preencha
+   `openai_api_key`. O `apply` cria o namespace se necessário e entrega a
+   chave ao Secret `as-docs/as-docs-ai-openai` antes de executar `ai_oauth`.
+   O valor não vai para o plano, state ou Git. Um Secret criado manualmente
+   continua sendo aceito sem esse arquivo. Para trocar uma chave gerenciada
+   pelo helper, altere o valor, incremente `openai_secret_revision` e aplique.
+   Se a IA já estiver rodando, reinicie o Deployment para recarregar a chave.
+   O modo `diagnostic`
    não precisa de chave, mas usa `hashing`/`extractive` e não valida escrita
    assistida. Use-o apenas com dados descartáveis: a troca posterior de
    provedor requer reconstruir o índice compatível com o novo provedor;
@@ -38,7 +49,8 @@ web nem a credencial delegada do MCP usam esses tokens técnicos.
    do Caddy já usado no deploy AWS. Confira acesso de pull no EKS. Mantenha os
    dois checkouts lado a lado (`As-docs-app` e `As-docs-ai`) ou aponte
    `TCC_DOCS_AI_PATH` para o checkout da IA no shell do Terraform. Acrescente
-   `ai_oauth` ao `infra/lab/terraform.tfvars` seguindo `lab.tfvars.example`.
+   `ai_oauth` a `infra/lab/ai.auto.tfvars` ou `infra/lab/terraform.tfvars`,
+   seguindo `lab.tfvars.example`. Use o mesmo backend em `app_deploy`.
    No mesmo diretório e com as credenciais AWS da conta do state, revise
    `terraform -chdir=infra/lab plan` e execute `terraform -chdir=infra/lab apply`
    a partir da raiz do app. O executor precisa de acesso ao Kubernetes,

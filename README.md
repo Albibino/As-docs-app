@@ -11,9 +11,114 @@ separada em **frontend** (Nginx, EC2 em subnet pública) e **backend** (NestJS, 
 | `deploy/k8s/` | namespace, Redis 8, backend (ConfigMap, Secret, NLB interno, NetworkPolicy) |
 | `docker-compose.yml` | stack local com a mesma separação (abre em http://localhost:8080) |
 
-Passo a passo de nuvem: [`deploy/README.md`](deploy/README.md).
-Para criar uma infraestrutura nova na sua conta AWS, comece em
-[`infra/lab/README.md`](infra/lab/README.md). Esse fluxo não usa o state do grupo.
+## Deploy completo no AWS Academy Learner Lab
+
+Use este fluxo em um laboratório descartável, sem recursos anteriores do
+projeto e com um state Terraform novo. Não use o state do grupo nem habilite
+`lab_full_deploy` em uma instalação existente.
+
+Use Bash com Git, Terraform 1.11 ou superior, AWS CLI, `kubectl`, Docker
+rodando com suporte a builds `linux/amd64`, Python 3, OpenSSL e `curl`.
+
+### 1. Clone os dois repositórios lado a lado
+
+```bash
+git clone --branch feat/infra-learner-lab https://github.com/Albibino/As-docs-app.git
+git clone --branch keycloak-implementation https://github.com/Albibino/As-docs-ai.git
+cd As-docs-app/infra/lab
+```
+
+Confira se a revisão publicada nos dois repositórios já inclui os arquivos
+abaixo. Se algum estiver faltando, não prossiga com o `apply`.
+
+```bash
+test -f full-deploy.tf &&
+test -f openai.tfvars.example &&
+test -f ../../deploy/aws-lab-build-inputs.json &&
+test -f ../../../As-docs-ai/deploy/aws-lab-build-inputs.json &&
+test -f ../../../As-docs-ai/deploy/render-aws-oauth.sh &&
+printf 'Arquivos do deploy encontrados.\n'
+```
+
+### 2. Autentique-se na AWS e descubra o seu IPv4
+
+Inicie seu Learner Lab e carregue as credenciais temporárias dele no mesmo
+terminal em que vai rodar o Terraform:
+
+```bash
+aws sts get-caller-identity --query Account --output text
+curl -4fsS https://checkip.amazonaws.com
+```
+
+Confirme que o ID retornado é o da sua conta de laboratório. Use o IPv4
+retornado pelo segundo comando com `/32`. É a saída da máquina que acessará
+a API do EKS; não use `0.0.0.0/0`.
+
+### 3. Configure o deploy e os segredos
+
+```bash
+umask 077
+cp -n lab.tfvars.example terraform.tfvars
+cp -n openai.tfvars.example openai.auto.tfvars
+chmod 600 openai.auto.tfvars
+```
+
+Em `terraform.tfvars`, substitua o IP de exemplo e habilite o modo integral:
+
+```hcl
+eks_api_access_cidrs = ["SEU_IPV4/32"]
+lab_full_deploy     = true
+```
+
+Deixe `app_deploy` e `ai_oauth` comentados. Em `openai.auto.tfvars`, preencha
+`openai_api_key` com a chave do projeto e mantenha `openai_secret_revision = 1`.
+O Terraform lê esse arquivo automaticamente. Não envie o arquivo nem o
+state ao Git.
+
+Informe uma senha administrativa nova para o RDS, com 32 a 128 caracteres
+alfanuméricos. Guarde-a em um gerenciador de senhas e use a mesma ao retomar
+o deploy:
+
+```bash
+read -rsp 'Senha administrativa do RDS: ' TF_VAR_db_password; printf '\n'
+export TF_VAR_db_password
+```
+
+### 4. Revise o plano e aplique
+
+```bash
+terraform init
+terraform validate
+terraform plan
+```
+
+Confira a conta, a região `us-east-1` e os recursos propostos. Se o plano
+indicar remoção de recursos existentes no primeiro deploy, pare. Caso
+contrário, no mesmo terminal, revise o plano exibido antes de confirmar:
+
+```bash
+terraform apply
+```
+
+O modo integral publica as imagens da aplicação e da IA no ECR da sua conta,
+prepara PostgreSQL e Keycloak e sobe Redis, backend, frontend e IA. Não é
+preciso criar tags, publicar imagens ou criar Secrets no Kubernetes à mão.
+O fluxo foi testado offline; o primeiro `apply` completo em uma conta nova
+ainda não foi validado.
+
+### 5. Abra e teste a aplicação
+
+```bash
+terraform output -raw public_app_url
+```
+
+Abra a URL e entre como `usuario-1` ou `usuario-2`. Somente nessas contas
+descartáveis a senha é igual ao login. Crie um documento e envie uma mensagem
+no chat da IA para testar o fluxo completo. O endereço público usa HTTP:
+não use esse laboratório para dados reais.
+
+Veja [requisitos e restrições do laboratório](infra/lab/README.md) e, se
+já tiver imagens publicadas, o [guia de deploy por digest](deploy/README.md).
 
 ---
 

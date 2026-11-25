@@ -56,10 +56,11 @@ module "edge" {
   frontend_instance_profile_name = local.frontend_instance_profile_name
   public_hostname                = var.public_hostname
   acm_certificate_arn            = var.acm_certificate_arn
-  keycloak_enabled               = var.keycloak_enabled
-  keycloak_lab_http              = var.keycloak_lab_http
-  keycloak_ai_oauth              = var.ai_oauth != null
-  keycloak_db_host               = var.keycloak_enabled ? module.database.database_connection.host : ""
+  keycloak_enabled               = local.keycloak_enabled
+  keycloak_lab_http              = local.keycloak_lab_http
+  keycloak_ai_oauth              = var.lab_full_deploy || var.ai_oauth != null
+  keycloak_db_host               = local.keycloak_enabled ? module.database.database_connection.host : ""
+  keycloak_bootstrap_id          = one(terraform_data.bootstrap_db[*].id)
 }
 
 output "eks_cluster_name" {
