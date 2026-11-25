@@ -36,7 +36,7 @@ cleanup() {
   code=$?
   trap - EXIT
 
-  if [ "$FINISHED" -ne 1 ] && [ "$SWAPPED" -eq 1 ]; then
+  if [[ "$FINISHED" -ne 1 ]] && [[ "$SWAPPED" -eq 1 ]]; then
     echo 'ERRO: tentando restaurar o container anterior'
 
     docker rm -f "$NAME" >/dev/null 2>&1 || true
@@ -84,19 +84,19 @@ for attempt in $(seq 1 40); do
     --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' \
     "$NAME")"
 
-  if [ "$status" = healthy ]; then
+  if [[ "$status" = healthy ]]; then
     HEALTHY=1
     break
   fi
 
-  if [ "$status" = unhealthy ]; then
+  if [[ "$status" = unhealthy ]]; then
     break
   fi
 
   sleep 3
 done
 
-if [ "$HEALTHY" -ne 1 ]; then
+if [[ "$HEALTHY" -ne 1 ]]; then
   echo 'ERRO: frontend nao atingiu status healthy'
   exit 1
 fi
