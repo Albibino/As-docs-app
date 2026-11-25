@@ -54,6 +54,9 @@ para obter o endereço. Esse modo usa o DNS HTTP do ALB e contas de teste;
 não o use para dados reais. O acesso administrativo do Keycloak permanece
 privado.
 
+O Keycloak usa duas réplicas em nós diferentes por padrão. Veja como
+[verificar as réplicas](../edge/KEYCLOAK.md#réplicas-em-nós-distintos).
+
 As tags são automáticas. Ao manter o código, só regenere o manifesto
 versionado `deploy/aws-lab-build-inputs.json` do repositório afetado se a
 lista de entradas de build mudar (por exemplo, ao adicionar ou remover um

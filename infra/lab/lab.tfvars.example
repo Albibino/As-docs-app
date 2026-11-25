@@ -20,6 +20,8 @@ eks_api_access_cidrs = ["192.0.2.5/32"]
 # lab_full_deploy = true
 # lab_ai_checkout = "../../../As-docs-ai" # padrão: repositório irmão
 # Requer openai.auto.tfvars. Não combine com app_deploy/ai_oauth abaixo.
+# Quando ativo, Keycloak tem 2 réplicas em nós distintos por padrão.
+# keycloak_replicas = 1 # para um lab que só comporta um pod
 
 # Deploy por digests preexistentes, depois do bootstrap manual:
 # keycloak_enabled  = true

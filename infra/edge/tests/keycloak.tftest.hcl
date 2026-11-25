@@ -83,6 +83,8 @@ run "keycloak_publica_somente_realm_e_recursos_em_https" {
   assert {
     condition = (
       jsondecode(local.keycloak_manifest).items[2].data["as-docs-realm.json"] != "" &&
+      local.keycloak_manifest_base.items[1].spec.replicas == 1 &&
+      anytrue([for env in local.keycloak_manifest_base.items[1].spec.template.spec.containers[0].env : env.name == "KC_CACHE" && try(env.value == "local", false)]) &&
       local.keycloak_realm.sslRequired == "all" && !local.keycloak_realm.registrationAllowed &&
       one([for c in local.keycloak_realm.clients : c if c.clientId == "docs-app-web"]).redirectUris[0] == "https://docs.grupo.test/api/auth/oidc/callback" &&
       !strcontains(local.keycloak_manifest, "localhost:8080")
@@ -115,5 +117,38 @@ run "keycloak_http_lab_publica_somente_login_web" {
       try(entry.podSelector.matchLabels.app == "as-docs-ai" && entry.namespaceSelector.matchLabels["kubernetes.io/metadata.name"] == "as-docs", false)
     ])
     error_message = "A IA precisa alcançar o JWKS privado em 8443, sem abrir o token no ALB."
+  }
+}
+
+run "keycloak_distribui_duas_replicas_e_isola_o_cache" {
+  command = plan
+  variables {
+    keycloak_enabled  = true
+    keycloak_lab_http = true
+    keycloak_replicas = 2
+    keycloak_db_host  = "as-docs-postgres.fixture.us-east-1.rds.amazonaws.com"
+  }
+  assert {
+    condition = (
+      local.keycloak_manifest_base.items[1].spec.replicas == 2 &&
+      local.keycloak_manifest_base.items[1].spec.strategy.rollingUpdate.maxUnavailable == 1 &&
+      local.keycloak_manifest_base.items[1].spec.strategy.rollingUpdate.maxSurge == 0 &&
+      one(local.keycloak_manifest_base.items[1].spec.template.spec.affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution).topologyKey == "kubernetes.io/hostname" &&
+      one(local.keycloak_manifest_base.items[1].spec.template.spec.topologySpreadConstraints).whenUnsatisfiable == "ScheduleAnyway"
+    )
+    error_message = "O rollout precisa preservar uma réplica e distribuir os pods em nós diferentes."
+  }
+  assert {
+    condition = alltrue([for name, value in { KC_CACHE = "ispn", KC_CACHE_STACK = "jdbc-ping", KC_CACHE_EMBEDDED_MTLS_ENABLED = "true" } :
+      anytrue([for env in local.keycloak_manifest_base.items[1].spec.template.spec.containers[0].env : env.name == name && try(env.value == value, false)])
+    ])
+    error_message = "O cache distribuído deve usar descoberta JDBC e mTLS."
+  }
+  assert {
+    condition = anytrue([for rule in one([for item in jsondecode(local.keycloak_manifest).items : item if item.kind == "NetworkPolicy"]).spec.ingress :
+      toset([for port in rule.ports : port.port if port.protocol == "TCP"]) == toset([7800, 57800]) &&
+      try(one(rule.from).podSelector.matchLabels.app == "as-docs-keycloak", false)
+    ]) && aws_lb_target_group.keycloak[0].port == 30443
+    error_message = "Só os pods Keycloak podem acessar as portas de cache; o ALB continua no NodePort HTTPS."
   }
 }

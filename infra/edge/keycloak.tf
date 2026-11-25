@@ -25,6 +25,17 @@ variable "keycloak_ai_oauth" {
   default     = false
 }
 
+variable "keycloak_replicas" {
+  description = "Uma réplica usa cache local; duas usam cache distribuído em nós distintos."
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = contains([1, 2], var.keycloak_replicas)
+    error_message = "Use 1 ou 2 réplicas para o Keycloak."
+  }
+}
+
 variable "keycloak_bootstrap_id" {
   description = "Ordena o primeiro deploy do Keycloak após o bootstrap opcional do laboratório."
   type        = string
@@ -48,6 +59,7 @@ locals {
   keycloak_origin    = "${var.keycloak_lab_http ? "http" : "https"}://${local.keycloak_host}"
   keycloak_listener  = local.tls_enabled ? aws_lb_listener.https[0].arn : aws_lb_listener.http.arn
   keycloak_node_port = 30443
+  keycloak_clustered = var.keycloak_replicas > 1
   keycloak_paths     = var.keycloak_lab_http ? ["/id/realms/as-docs/protocol/openid-connect/auth", "/id/realms/as-docs/login-actions/*", "/id/resources/*"] : ["/id/realms/as-docs/*", "/id/resources/*"]
   keycloak_base      = jsondecode(file("${path.module}/../../config/keycloak/as-docs-realm.json"))
   keycloak_realm = merge(local.keycloak_base, {
@@ -61,19 +73,21 @@ locals {
     hostname        = "${local.keycloak_origin}/id"
     db_host         = var.keycloak_db_host
     node_port       = local.keycloak_node_port
+    replicas        = var.keycloak_replicas
+    clustered       = local.keycloak_clustered
     trusted_proxies = local.keycloak_active ? join(",", sort([for subnet in local.base.public_subnets : subnet.cidr])) : ""
     realm_json      = jsonencode(local.keycloak_realm)
     realm_hash      = sha256(jsonencode(local.keycloak_realm))
   }))
   keycloak_manifest = jsonencode(merge(local.keycloak_manifest_base, {
-    items = concat(local.keycloak_manifest_base.items, var.keycloak_lab_http ? [jsondecode(jsonencode({
+    items = concat(local.keycloak_manifest_base.items, (var.keycloak_lab_http || local.keycloak_clustered) ? [jsondecode(jsonencode({
       apiVersion = "networking.k8s.io/v1"
       kind       = "NetworkPolicy"
       metadata   = { name = "keycloak-http-lab-ingress", namespace = "as-docs-identity" }
       spec = {
         podSelector = { matchLabels = { app = "as-docs-keycloak" } }
         policyTypes = ["Ingress"]
-        ingress = [{
+        ingress = concat([{
           from = concat(
             [for subnet in local.base.public_subnets : { ipBlock = { cidr = subnet.cidr } }],
             [for app in concat(["as-docs-backend"], var.keycloak_ai_oauth ? ["as-docs-ai"] : []) : {
@@ -82,7 +96,10 @@ locals {
             }]
           )
           ports = [{ protocol = "TCP", port = 8443 }]
-        }]
+          }], local.keycloak_clustered ? [{
+          from  = [{ podSelector = { matchLabels = { app = "as-docs-keycloak" } } }]
+          ports = [for port in [7800, 57800] : { protocol = "TCP", port = port }]
+        }] : [])
       }
     }))] : [])
   }))

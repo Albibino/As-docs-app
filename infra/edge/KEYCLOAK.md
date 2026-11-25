@@ -1,12 +1,30 @@
 # Keycloak no EKS (AWS Academy)
 
-O state `edge.tfstate` reaproveita o EKS privado, o ALB/WAF e o RDS. Com `keycloak_enabled = true`, o Terraform aplica o Deployment, Service e ConfigMap no EKS via `kubectl`, aguarda o rollout e publica `https://<domínio>/id/realms/as-docs`. A licença do laboratório não é usada para criar nova função IAM nem outro balanceador/RDS. O Keycloak roda com uma réplica (não é HA); a persistência fica no RDS, em banco e usuário exclusivos. A porta 9000 de gestão não tem rota pública e a borda só encaminha o realm `as-docs` e os recursos estáticos.
+O state `edge.tfstate` reaproveita o EKS privado, o ALB/WAF e o RDS. Com `keycloak_enabled = true`, o Terraform aplica o Deployment, Service e ConfigMap no EKS via `kubectl`, aguarda o rollout e publica `https://<domínio>/id/realms/as-docs`. A licença do laboratório não é usada para criar nova função IAM nem outro balanceador/RDS. Na borda legada, o padrão continua sendo uma réplica. A persistência fica no RDS, em banco e usuário exclusivos. A porta 9000 de gestão não tem rota pública e a borda só encaminha o realm `as-docs` e os recursos estáticos.
 
 O roteiro abaixo usa a implantação legada. Em `infra/lab`, use a raiz portátil
 e prepare os mesmos pré-requisitos no banco e cluster dessa raiz antes de
 ativar Keycloak. O provisionador usa a conta selecionada e o nome do cluster
 fornecido pela rede; a sessão da CLI AWS no ambiente do Terraform também deve
 ser dessa conta.
+
+## Réplicas em nós distintos
+
+Em `infra/lab`, quando o Keycloak está habilitado, o padrão é `keycloak_replicas = 2`.
+São necessários pelo menos dois nós aptos, com recursos para um pod cada.
+A antiafinidade exige nós diferentes e o agendamento prefere zonas distintas.
+O cache Infinispan usa descoberta `jdbc-ping` no mesmo banco e mTLS entre
+as réplicas. A política de ingress só permite TCP `7800` e `57800` entre pods
+do Keycloak; as portas não fazem parte do Service exposto ao ALB.
+
+Em um lab já provisionado, revise o plano no mesmo state, mantendo as flags
+atuais. A primeira troca de cache local para distribuído pode interromper
+logins em andamento. `keycloak_replicas = 1` mantém o modo de pod único.
+Depois do apply, confira os nós com `kubectl -n as-docs-identity get pods
+-l app=as-docs-keycloak -o wide` no contexto do lab e confira nos logs de ambos
+uma visão do cluster com dois membros. Confira dois alvos saudáveis no ALB.
+Em um ambiente de teste, remova um pod e confira login pelo ALB e emissão de
+token técnico pelo backchannel privado. O rollout pronto não substitui esse teste.
 
 ## Pré-requisitos
 
@@ -80,5 +98,8 @@ ou documentos sensíveis nesse modo.
    `/id/realms/as-docs/protocol/openid-connect/token` não são públicos.
 
 Para desativar, volte ao modo HTTPS ou desative `keycloak_enabled` e
-`keycloak_lab_http` juntos. Remova a NetworkPolicy `keycloak-http-lab-ingress`
-ao desativar o modo HTTP; o provisionador não remove manifests já aplicados.
+`keycloak_lab_http` juntos. Ao voltar para HTTPS com duas réplicas, mantenha
+a NetworkPolicy `keycloak-http-lab-ingress`: ela também contém as regras do
+cache. Se o manifesto deixar de incluir a política (por exemplo, em HTTPS
+com uma réplica), revise e remova a política antiga separadamente; o
+provisionador não remove manifests já aplicados.

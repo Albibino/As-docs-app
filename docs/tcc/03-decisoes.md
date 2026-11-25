@@ -369,3 +369,13 @@ Git. A variável é sensível e efêmera; o Secret Kubernetes é aplicado via
 stdin, sem registrar o valor no plano ou state. A revisão não secreta permite
 atualizar o Secret de propósito. A entrega da chave não habilita a IA nem
 substitui as credenciais técnicas do Keycloak.
+
+## D26. Keycloak em dois nós no laboratório AWS
+
+Com o Keycloak ativo em `infra/lab`, o padrão é duas réplicas em nós
+distintos, preferindo zonas distintas, com Infinispan, descoberta
+`jdbc-ping` no RDS existente e mTLS interno. A borda continua na porta de
+aplicação e não encaminha as portas do cache. A borda legada mantém uma
+réplica por padrão. Dois nós aptos são necessários; a troca inicial do cache
+local pode afetar logins em andamento. Ver a
+[verificação das réplicas](../../infra/edge/KEYCLOAK.md#réplicas-em-nós-distintos).

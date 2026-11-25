@@ -58,6 +58,7 @@ module "edge" {
   acm_certificate_arn            = var.acm_certificate_arn
   keycloak_enabled               = local.keycloak_enabled
   keycloak_lab_http              = local.keycloak_lab_http
+  keycloak_replicas              = var.keycloak_replicas
   keycloak_ai_oauth              = var.lab_full_deploy || var.ai_oauth != null
   keycloak_db_host               = local.keycloak_enabled ? module.database.database_connection.host : ""
   keycloak_bootstrap_id          = one(terraform_data.bootstrap_db[*].id)

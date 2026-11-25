@@ -104,6 +104,17 @@ variable "keycloak_enabled" {
   default     = false
 }
 
+variable "keycloak_replicas" {
+  description = "Número de réplicas do Keycloak no lab quando ativado: 1 ou 2 (padrão em nós distintos)."
+  type        = number
+  default     = 2
+
+  validation {
+    condition     = contains([1, 2], var.keycloak_replicas)
+    error_message = "Use 1 ou 2 réplicas para o Keycloak."
+  }
+}
+
 variable "keycloak_lab_http" {
   description = "Usa HTTP externo para login com contas descartáveis do Learner Lab, sem ACM."
   type        = bool

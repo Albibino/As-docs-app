@@ -22,9 +22,16 @@ items:
       name: as-docs-keycloak
       namespace: as-docs-identity
     spec:
-      replicas: 1
+      replicas: ${replicas}
       strategy:
+%{ if clustered ~}
+        type: RollingUpdate
+        rollingUpdate:
+          maxSurge: 0
+          maxUnavailable: 1
+%{ else ~}
         type: Recreate
+%{ endif ~}
       selector:
         matchLabels:
           app: as-docs-keycloak
@@ -36,6 +43,22 @@ items:
             as-docs/realm-sha256: ${jsonencode(realm_hash)}
         spec:
           automountServiceAccountToken: false
+%{ if clustered ~}
+          affinity:
+            podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                - labelSelector:
+                    matchLabels:
+                      app: as-docs-keycloak
+                  topologyKey: kubernetes.io/hostname
+          topologySpreadConstraints:
+            - maxSkew: 1
+              topologyKey: topology.kubernetes.io/zone
+              whenUnsatisfiable: ScheduleAnyway
+              labelSelector:
+                matchLabels:
+                  app: as-docs-keycloak
+%{ endif ~}
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000
@@ -64,7 +87,16 @@ items:
                 - { name: KC_HTTP_MANAGEMENT_RELATIVE_PATH, value: / }
                 - { name: KC_HEALTH_ENABLED, value: "true" }
                 - { name: KC_METRICS_ENABLED, value: "true" }
+%{ if clustered ~}
+                - { name: KC_CACHE, value: ispn }
+                - { name: KC_CACHE_STACK, value: jdbc-ping }
+                - { name: KC_CACHE_EMBEDDED_MTLS_ENABLED, value: "true" }
+                - name: KC_CACHE_EMBEDDED_NETWORK_BIND_ADDRESS
+                  valueFrom:
+                    fieldRef: { fieldPath: status.podIP }
+%{ else ~}
                 - { name: KC_CACHE, value: local }
+%{ endif ~}
                 - { name: KC_DB, value: postgres }
                 - { name: KC_DB_URL_HOST, value: ${jsonencode(db_host)} }
                 - { name: KC_DB_URL_DATABASE, value: keycloak }
